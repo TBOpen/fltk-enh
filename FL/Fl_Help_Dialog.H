@@ -82,6 +82,9 @@ public:
   int w();
   int x();
   int y();
+	void set_modal(void) {
+		window_->set_modal();
+	}
 };
 #endif
 

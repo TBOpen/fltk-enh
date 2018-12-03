@@ -60,6 +60,75 @@ static int Toupper(int ucs) {
   return table[ucs];
 }
 
+
+/**
+  Find the leading character of a utf8 sequence based on
+  \e u8c in \e u8s_start with \e chars_avail available
+
+  \param u8c char position in string (may be in sequence)
+  \param u8s_start the string u8c is within
+  \param chars_avail number of chars available in u8s_start
+  \return pointer to start of a character
+*/
+const char *fl_utf8_find_leading_char(const char *u8c, const char *u8s_start, int chars_avail)
+{
+  const char *u8c_org = u8c;
+
+  while (u8c > u8s_start && fl_utf8_is_continuation_char(*u8c)) {
+    u8c--;
+  }
+
+  if (u8c != u8c_org && fl_utf8_is_leading_char(*u8c)) {
+    // check if valid sequence
+    if (fl_utf8len_real(u8c, (int) ((u8s_start + chars_avail) - u8c))>1) {
+      // return start of utf8 seq
+      return u8c;
+    }
+  }
+
+  // return original location
+  return ( u8c_org );
+}
+
+/**
+  Returns the byte length of the UTF-8 sequence -1 if not valid.
+*/
+int fl_utf8len_real(const char *str, int chars_avail)
+{
+  char c=*str;
+  if (!(c & 0x80)) return 1;
+
+  int utf8chlen;
+  if (c & 0x40) {
+    if (c & 0x20) {
+      if (c & 0x10) {
+        if (c & 0x08) {
+          if (c & 0x04) {
+            utf8chlen = 6;
+          }
+          else utf8chlen = 5;
+        }
+        else utf8chlen = 4;
+      }
+      else utf8chlen = 3;
+    }
+    else utf8chlen = 2;
+    if (utf8chlen <= chars_avail) {
+      const char *p=str;
+      for (int i = 1; i < utf8chlen; i++) {
+        p++;
+        if (((unsigned char)(*p) & 0xC0)!=0x80) {
+          return -1;
+        }
+      }
+      return utf8chlen;
+    }
+  }
+  return -1;
+}
+
+
+
 /**
   Returns the byte length of the UTF-8 sequence with first byte \p c,
   or -1 if \p c is not valid.
@@ -130,7 +199,7 @@ fl_utf_nb_char(
   int i = 0;
   int nbc = 0;
   while (i < len) {
-    int cl = fl_utf8len((buf+i)[0]);
+    int cl = fl_utf8len_real((const char*)(buf+i), len - i);
     if (cl < 1) cl = 1;
     nbc++;
     i += cl;

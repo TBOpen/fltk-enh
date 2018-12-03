@@ -126,7 +126,11 @@ int Fl_Button::handle(int event) {
     return 1;
   case FL_SHORTCUT:
     if (!(shortcut() ?
-	  Fl::test_shortcut(shortcut()) : test_shortcut())) return 0;
+    Fl::test_shortcut(shortcut()) : test_shortcut())) {
+      if (!shortcut2() || !Fl::test_shortcut(shortcut2())) {
+        return 0;
+      }
+    }
     if (Fl::visible_focus() && handle(FL_FOCUS)) Fl::focus(this);
     goto triggered_by_keyboard;
   case FL_FOCUS :
@@ -144,7 +148,9 @@ int Fl_Button::handle(int event) {
     } else return 0;
     /* NOTREACHED */
   case FL_KEYBOARD :
-    if (Fl::focus() == this && Fl::event_key() == ' ' &&
+    if (Fl::focus() == this &&
+        (Fl::event_key() == ' ' ||
+         (type()==FL_NORMAL_BUTTON && (Fl::event_key()==FL_Enter || Fl::event_key()==FL_KP_Enter) && click_on_enter_key())) &&
         !(Fl::event_state() & (FL_SHIFT | FL_CTRL | FL_ALT | FL_META))) {
       set_changed();
     triggered_by_keyboard:
@@ -217,6 +223,7 @@ Fl_Button::Fl_Button(int X, int Y, int W, int H, const char *L)
   down_box(FL_NO_BOX);
   value_ = oldval = 0;
   shortcut_ = 0;
+  shortcut2_ = 0;
   set_flag(SHORTCUT_LABEL);
 }
 

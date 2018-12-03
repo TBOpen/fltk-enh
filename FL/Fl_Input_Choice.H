@@ -24,6 +24,8 @@
 /* \file
    Fl_Input_Choice widget . */
 
+
+
 #ifndef Fl_Input_Choice_H
 #define Fl_Input_Choice_H
 
@@ -54,11 +56,51 @@ class FL_EXPORT Fl_Input_Choice : public Fl_Group {
   // Private class to handle slightly 'special' behavior of menu button
   class InputMenuButton : public Fl_Menu_Button {
     void draw();
+
+  protected:
+    static const int FLAG_EX_ARROW_SHORTCUT=1;  // allow arrow down to open menu
+    int flags_ex_;
+
   public:
     InputMenuButton(int X, int Y, int W, int H, const char *L=0);
+    int handle(int event);
+
+    void arrow_shortcut(int on) 
+    { 
+      if (on) {
+        flags_ex_ |= FLAG_EX_ARROW_SHORTCUT; 
+      }
+      else {
+        flags_ex_ &= ~FLAG_EX_ARROW_SHORTCUT;
+      }
+  };
+    bool arrow_shortcut(void) const { return (flags_ex_ & FLAG_EX_ARROW_SHORTCUT)!=0; };
   };
 
-  Fl_Input *inp_;
+
+  // This class works like Fl_Input but ignores FL_Up and FL_Down key
+  // presses so they are handled by its parent, the Fl_Input_Choice widget.
+  class FL_EXPORT InputSubclass : public Fl_Input {
+  protected:
+    static const int FLAG_EX_ARROW_SHORTCUT=1;  // allow arrow down to open menu
+    int flags_ex_;
+  public:
+    InputSubclass(int X, int Y, int W, int H);
+    int handle(int event);		// implemented in src/Fl_InputChoice.cxx
+
+    void arrow_shortcut(int on) 
+    { 
+      if (on) {
+        flags_ex_ |= FLAG_EX_ARROW_SHORTCUT; 
+      }
+      else {
+        flags_ex_ &= ~FLAG_EX_ARROW_SHORTCUT;
+      }
+    };
+    bool arrow_shortcut(void) const { return (flags_ex_ & FLAG_EX_ARROW_SHORTCUT)!=0; };
+  };
+
+  InputSubclass *inp_;
   InputMenuButton *menu_;
 
   // note: this is used by the Fl_Input_Choice ctor.
@@ -83,6 +125,8 @@ public:
   Fl_Input_Choice(int X, int Y, int W, int H, const char *L=0);
 
   void resize(int X, int Y, int W, int H);
+
+  int handle(int event);
 
   /** Adds an item to the menu.
     When any item is selected, the Fl_Input_Choice callback() is invoked,
@@ -181,6 +225,29 @@ public:
     This can be used to directly access all of the Fl_Input widget's methods.
   */
   Fl_Input *input() { return inp_; }
+  /**
+    sets the maximum input size
+  */
+  void maximum_size(int size)
+  {
+    if (inp_)
+      inp_->maximum_size(size);
+};
+
+  void enable_arrow_shortcut(void) 
+  { 
+    menu_->arrow_shortcut(1); 
+    inp_->arrow_shortcut(1);
+  };
+  
+  void disable_arrow_shortcut(void) 
+  { 
+    inp_->arrow_shortcut(0);
+     menu_->arrow_shortcut(0); 
+  };
+
+  bool arrow_shortcut(void) const { return menu_->arrow_shortcut(); };
+
 };
 
 #endif // !Fl_Input_Choice_H

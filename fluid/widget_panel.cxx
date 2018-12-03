@@ -195,7 +195,7 @@ Fl_Double_Window* make_widget_panel() {
             o->labelsize(11);
             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_WRAP));
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(278, 115, 20, 20, "@-1<-");
+          { Fl_Button* o = new Fl_Button(278, 115, 20, 20, FL_FLUID_LF_ALIGN_TX);
             o->tooltip("Left-align the label.");
             o->type(1);
             o->selection_color(FL_INACTIVE_COLOR);
@@ -204,7 +204,7 @@ Fl_Double_Window* make_widget_panel() {
             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_LEFT));
             o->hide();
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(303, 115, 20, 20, "@-1->");
+          { Fl_Button* o = new Fl_Button(303, 115, 20, 20, FL_FLUID_RT_ALIGN_TX);
             o->tooltip("Right-align the label.");
             o->type(1);
             o->selection_color(FL_INACTIVE_COLOR);
@@ -213,7 +213,7 @@ Fl_Double_Window* make_widget_panel() {
             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_RIGHT));
             o->hide();
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(328, 115, 20, 20, "@-18");
+          { Fl_Button* o = new Fl_Button(328, 115, 20, 20, FL_FLUID_TOP_ALIGN_TX);
             o->tooltip("Top-align the label.");
             o->type(1);
             o->selection_color(FL_INACTIVE_COLOR);
@@ -222,7 +222,7 @@ Fl_Double_Window* make_widget_panel() {
             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_TOP));
             o->hide();
           } // Fl_Button* o
-          { Fl_Button* o = new Fl_Button(353, 115, 20, 20, "@-12");
+          { Fl_Button* o = new Fl_Button(353, 115, 20, 20, FL_FLUID_BOT_ALIGN_TX);
             o->tooltip("Bottom-align the label.");
             o->type(1);
             o->selection_color(FL_INACTIVE_COLOR);
@@ -245,7 +245,7 @@ Fl_Double_Window* make_widget_panel() {
             o->callback((Fl_Callback*)align_position_cb);
             o->menu(menu_1);
           } // Fl_Choice* o
-          { Fl_Button* o = new Fl_Button(378, 115, 20, 20, "@-3square");
+          { Fl_Button* o = new Fl_Button(378, 115, 20, 20, FL_FLUID_INSIDE_ALIGN_TX);
             o->tooltip("Show the label inside the widget.");
             o->type(1);
             o->selection_color(FL_INACTIVE_COLOR);

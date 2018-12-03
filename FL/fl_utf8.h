@@ -53,6 +53,18 @@ extern "C" {
  */
 FL_EXPORT int fl_utf8bytes(unsigned ucs);
 
+/* returns the byte length of the UTF-8 char sequence (returns -1 if not valid) */
+FL_EXPORT int fl_utf8len_real(const char *str, int chars_avail);
+
+FL_EXPORT const char *fl_utf8_find_leading_char(const char *u8c, const char *u8s_start, int chars_avail);
+
+/* determine if char is potential continuation character */
+#define fl_utf8_is_continuation_char(ch) ((((unsigned char)(ch)) & 0xC0)==0x80)
+
+/* determine if looks like utf8 leading sequence character */
+#define fl_utf8_is_leading_char(ch) ((((unsigned char)(ch)) & 0xC0)==0xC0)
+
+
 /* OD: returns the byte length of the first UTF-8 char sequence (returns -1 if not valid) */
 FL_EXPORT int fl_utf8len(char c);
 

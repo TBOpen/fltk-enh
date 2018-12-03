@@ -34,6 +34,7 @@
 
 
 char fl_draw_shortcut;	// set by fl_labeltypes.cxx
+char fl_force_wrap_breaks; // option set by app and/or widgets
 
 static char* underline_at;
 
@@ -64,11 +65,36 @@ static const char* expand_text_(const char* from, char*& buf, int maxbuf, double
       // test for word-wrap:
       if (word_start < p && wrap) {
 	double newwidth = w + fl_width(word_end, (int) (o-word_end) );
-	if (word_end > buf && int(newwidth) > maxw) { // break before this word
+        // determine if line too long
+        if (newwidth > maxw) {
+          // determine if prior word output that fits
+          if (word_end > buf) {
+            // go back to the end of the prior word
 	  o = word_end;
 	  p = word_start;
 	  break;
 	}
+          // determine if this line has no spaces and is too long
+          else if (word_end == buf && fl_force_wrap_breaks) {
+            // truncate to maxw
+            while (newwidth > maxw && p > word_start) {
+              // move back to prior char
+              o--;
+              p--;
+              // handle encoded characters in output buffer
+              int tc=*p & 255;
+              if (tc < ' ' || tc == 127) {
+                o--;
+              }
+              // sanity check in debugging mode
+              //assert(o >= buf);
+              // calculate new width again
+              newwidth = w + fl_width(word_end, o-word_end);
+            }
+            // leave the rest of this long word for the next line
+            break;
+          }
+        }
 	word_end = o;
 	w = newwidth;
       }
@@ -96,8 +122,9 @@ static const char* expand_text_(const char* from, char*& buf, int maxbuf, double
     } else if (c < ' ' || c == 127) { // ^X
       *o++ = '^';
       *o++ = c ^ 0x40;
-    } else if (c == '@' && draw_symbols) { // Symbol???
-      if (p[1] && p[1] != '@')  break;
+
+    } else if (c == FL_SYMBOL_CHAR && draw_symbols) { // Symbol???
+      if (p[1] && p[1] != FL_SYMBOL_CHAR)  break;
       *o++ = c;
       if (p[1]) p++;
     } else {
@@ -159,7 +186,7 @@ void fl_draw(
   symwidth[1]  = 0;
 
   if (draw_symbols) {
-    if (str && str[0] == '@' && str[1] && str[1] != '@') {
+    if (str && str[0] == FL_SYMBOL_CHAR && str[1] && str[1] != FL_SYMBOL_CHAR) {
       // Start with a symbol...
       for (symptr = symbol[0];
            *str && !isspace(*str) && symptr < (symbol[0] + sizeof(symbol[0]) - 1);
@@ -169,7 +196,7 @@ void fl_draw(
       symwidth[0] = (w < h ? w : h);
     }
 
-    if (str && (p = strrchr(str, '@')) != NULL && p > (str + 1) && p[-1] != '@') {
+    if (str && (p = strrchr(str, FL_SYMBOL_CHAR)) != NULL && p > (str + 1) && p[-1] != FL_SYMBOL_CHAR) {
       strlcpy(symbol[1], p, sizeof(symbol[1]));
       symwidth[1] = (w < h ? w : h);
     }
@@ -187,7 +214,7 @@ void fl_draw(
                          align&FL_ALIGN_WRAP, draw_symbols);
       if (strw<width) strw = (int)width;
       lines++;
-      if (!*e || (*e == '@' && e[1] != '@' && draw_symbols)) break;
+      if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR && draw_symbols)) break;
       p = e;
     }
   } else lines = 0;
@@ -265,7 +292,7 @@ void fl_draw(
       if (underline_at && underline_at >= linebuf && underline_at < (linebuf + buflen))
 	callthis("_",1,xpos+int(fl_width(linebuf,(int) (underline_at-linebuf))),ypos-desc);
 
-      if (!*e || (*e == '@' && e[1] != '@')) break;
+      if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR)) break;
       p = e;
     }
   }
@@ -320,7 +347,7 @@ void fl_draw(
   If \p img is provided and is not \p NULL, the image is drawn above or
   below the text as specified by the \p align value.
   The \p draw_symbols argument specifies whether or not to look for symbol
-  names starting with the '\@' character'
+  names starting with the FL_SYMBOL_CHAR character'
 */
 void fl_draw(
   const char* str,
@@ -378,20 +405,22 @@ void fl_measure(const char* str, int& w, int& h, int draw_symbols) {
   int W = 0;
   int symwidth[2], symtotal;
 
+  if (w<0) w=0;
+
   symwidth[0] = 0;	// size of symbol at beginning of string (if any)
   symwidth[1] = 0;	// size of symbol at end of string (if any)
 
   if (draw_symbols) {
     // Symbol at beginning of string?
-    const char *sym2 = (str[0]=='@' && str[1]=='@') ? str+2 : str;	// sym2 check will skip leading @@
-    if (str[0] == '@' && str[1] != '@') {
+    const char *sym2 = (str[0]==FL_SYMBOL_CHAR && str[1]==FL_SYMBOL_CHAR) ? str+2 : str;	// sym2 check will skip leading @@
+    if (str[0] == FL_SYMBOL_CHAR && str[1] != FL_SYMBOL_CHAR) {
       while (*str && !isspace(*str)) { ++str; }		// skip over symbol
       if (isspace(*str)) ++str;				// skip over trailing space
       sym2 = str;					// sym2 check will skip leading symbol
       symwidth[0] = h;
     }
     // Symbol at end of string?
-    if ((p=strchr(sym2,'@')) != NULL && p[1] != '@') {
+    if ((p=strchr(sym2,FL_SYMBOL_CHAR)) != NULL && p[1] != FL_SYMBOL_CHAR) {
       symwidth[1] = h;
     }
   }
@@ -404,7 +433,7 @@ void fl_measure(const char* str, int& w, int& h, int draw_symbols) {
 			w != 0, draw_symbols);
     if ((int)ceil(width) > W) W = (int)ceil(width);
     lines++;
-    if (!*e || (*e == '@' && e[1] != '@' && draw_symbols)) break;
+    if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR && draw_symbols)) break;
     p = e;
   }
 

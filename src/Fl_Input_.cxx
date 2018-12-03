@@ -59,14 +59,14 @@ const char* Fl_Input_::expand(const char* p, char* buf) const {
 //  const char *pe = p + strlen(p);
 
   if (input_type()==FL_SECRET_INPUT) {
-    while (o<e && p < value_+size_) {
-      if (fl_utf8len((char)p[0]) >= 1) {
+    const char *pend=value_ + size_;
+    while (o<e && p < pend) {
+      if (fl_utf8len_real(p, (int) (pend-p)) >= 1) {
 	l_secret = fl_utf8encode(Fl_Screen_Driver::secret_input_character, o);
 	o += l_secret;
       }
       p++;
     }
-
   } else while (o<e) {
     if (wrap() && (p >= value_+size_ || isspace(*p & 255))) {
       word_wrap = w() - Fl::box_dw(box()) - 2;
@@ -98,6 +98,10 @@ const char* Fl_Input_::expand(const char* p, char* buf) const {
     }
   }
   *o = 0;
+  // truncate to user requested maximum size
+  if (maximum_size_<MAXBUF) {
+    buf[maximum_size_]=0;
+  }
   return p;
 }
 
@@ -123,7 +127,7 @@ double Fl_Input_::expandpos(
   int l;
   if (input_type()==FL_SECRET_INPUT) {
     while (p<e) {
-      l = fl_utf8len((char)p[0]);
+      l = fl_utf8len_real(p, (int) (e-p));
       if (l >= 1) n += l_secret;
       p += l;
     }
@@ -137,7 +141,7 @@ double Fl_Input_::expandpos(
     } else {
       n++;
     }
-    chr += fl_utf8len((char)p[0]) >= 1;
+    chr += fl_utf8len_real(p, (int) (e-p)) >= 1;
     p++;
   }
   if (returnn) *returnn = n;
@@ -376,7 +380,12 @@ void Fl_Input_::drawtext(int X, int Y, int W, int H) {
 	        (int)(xpos+curx+0.5f), Y+ypos+height-4,
 	        (int)(xpos+curx+3.5f), Y+ypos+height-1);
       } else {
+        if (unicode_input_active()) {
+          fl_rectf((int)(xpos+curx+0.5), (Y+ypos)+(height/3), 2, height/2);
+        }
+        else {
         fl_rectf((int)(xpos+curx+0.5), Y+ypos, 2, height);
+      }
       }
       Fl::insertion_point_location((int)xpos+curx, Y+ypos+height, height);
     }
@@ -548,7 +557,7 @@ void Fl_Input_::handle_mouse(int X, int Y, int /*W*/, int /*H*/, int drag) {
   const char *l, *r, *t; double f0 = Fl::event_x()-X+xscroll_;
   for (l = p, r = e; l<r; ) {
     double f;
-    int cw = fl_utf8len((char)l[0]);
+    int cw = fl_utf8len_real(l, (int) (r-l));
     if (cw < 1) cw = 1;
     t = l+cw;
     f = X-xscroll_+expandpos(p, t, buf, 0);
@@ -557,7 +566,7 @@ void Fl_Input_::handle_mouse(int X, int Y, int /*W*/, int /*H*/, int drag) {
   }
   if (l < e) { // see if closer to character on right:
     double f1;
-    int cw = fl_utf8len((char)l[0]);
+    int cw = fl_utf8len_real(l, (int) (e - l));
     if (cw > 0) {
       f1 = X-xscroll_+expandpos(p, l + cw, buf, 0) - Fl::event_x();
       if (f1 < f0) l = l+cw;
@@ -601,6 +610,50 @@ void Fl_Input_::handle_mouse(int X, int Y, int /*W*/, int /*H*/, int drag) {
 }
 
 /**
+  Helper for position(int p, int m)
+
+  Adjust the to the position /e p aligned with utf8
+  chars based on the current_position.
+
+  \param p index for the desired cursor position
+  \param current_position the cursor current position
+  \return aligned position for p
+*/
+int Fl_Input_::position_adjust(int p, int current_position)
+{
+  // point to start character at p
+  const char *u8chr=value() + p;
+
+  u8chr = fl_utf8_find_leading_char(u8chr, value(), size());
+
+  // adjust to actual position of u8chr
+  int u8chrpos=(int) (u8chr - value());
+
+  // check direction
+  if (p > current_position) {
+    // forward
+    while (u8chrpos<size() && u8chrpos < p) {
+      // calc chr len
+      int u8chrlen = fl_utf8len_real(u8chr, size() - u8chrpos);
+      if (u8chrlen < 0) u8chrlen = 1;
+      // move to next char
+      u8chrpos += u8chrlen;
+      u8chr += u8chrlen;
+    }
+  }
+  else {
+    // reverse
+    while (u8chrpos>0 && u8chrpos > p) {
+      u8chr = fl_utf8_find_leading_char(u8chr - 1, value(), size());
+      u8chrpos = (int) (u8chr - value());
+    }
+  }
+  // return final position
+  return u8chrpos;
+}
+
+
+/**
   Sets the index for the cursor and mark.
 
   The input widget maintains two pointers into the string. The
@@ -618,34 +671,20 @@ void Fl_Input_::handle_mouse(int X, int Y, int /*W*/, int /*H*/, int drag) {
   \see position(int), position(), mark(int)
 */
 int Fl_Input_::position(int p, int m) {
-  int is_same = 0;
   was_up_down = 0;
+  int is_same = 0;
   if (p<0) p = 0;
   if (p>size()) p = size();
   if (m<0) m = 0;
   if (m>size()) m = size();
   if (p == m) is_same = 1;
 
-  while (p < position_ && p > 0 && (size() - p) > 0 &&
-       (fl_utf8len((char)(value() + p)[0]) < 1)) { p--; }
-  int ul = fl_utf8len((char)(value() + p)[0]);
-  while (p < size() && p > position_ && ul < 0) {
-       p++;
-       ul = fl_utf8len((char)(value() + p)[0]);
-  }
+  p = position_adjust(p, position_);
+  m = position_adjust(m, mark_);
 
-  while (m < mark_ && m > 0 && (size() - m) > 0 &&
-       (fl_utf8len((char)(value() + m)[0]) < 1)) { m--; }
-  ul = fl_utf8len((char)(value() + m)[0]);
-  while (m < size() && m > mark_ && ul < 0) {
-       m++;
-       ul = fl_utf8len((char)(value() + m)[0]);
-  }
   if (is_same) m = p;
   if (p == position_ && m == mark_) return 0;
 
-
-  //if (Fl::selection_owner() == this) Fl::selection_owner(0);
   if (p != m) {
     if (p != position_) minimal_update(position_, p);
     if (m != mark_) minimal_update(mark_, m);
@@ -789,21 +828,22 @@ static void undobuffersize(int n) {
   invalid UTF-8 bytes as one character each).
 */
 int Fl_Input_::replace(int b, int e, const char* text, int ilen) {
-  int ul, om, op;
+  int om, op;
   was_up_down = 0;
-
+  int is_same = 0;
   if (b<0) b = 0;
   if (e<0) e = 0;
   if (b>size_) b = size_;
   if (e>size_) e = size_;
   if (e<b) {int t=b; b=e; e=t;}
-  while (b != e && b > 0 && (size_ - b) > 0 &&
-       (fl_utf8len((value_ + b)[0]) < 1)) { b--; }
-  ul = fl_utf8len((char)(value_ + e)[0]);
-  while (e < size_ && e > 0 && ul < 0) {
-       e++;
-       ul = fl_utf8len((char)(value_ + e)[0]);
+  if (e==b) is_same = 1;
+
+  b = position_adjust(b, e);
+  if (is_same) {
+      e = b;
   }
+  else e = position_adjust(e, b);
+
   if (text && !ilen) ilen = (int) strlen(text);
   if (e<=b && !ilen) return 0; // don't clobber undo for a null operation
 
@@ -812,22 +852,27 @@ int Fl_Input_::replace(int b, int e, const char* text, int ilen) {
 
   int nchars = 0;	// characters in value() - deleted + inserted
   const char *p = value_;
-  while (p < (char *)(value_+size_)) {
+  const char *pend = value_ + size_;
+  while (p < pend) {
     if (p == (char *)(value_+b)) { // skip removed part
       p = (char *)(value_+e);
-      if (p >= (char *)(value_+size_)) break;
+      if (p >= pend) break;
     }
-    int ulen = fl_utf8len(*p);
+    int ulen = fl_utf8len_real(p, (int) (pend - p));
     if (ulen < 1) ulen = 1; // invalid UTF-8 character: count as 1
     nchars++;
     p += ulen;
   }
   int nlen = 0;		// length (in bytes) to be inserted
   p = text;
-  while (p < (char *)(text+ilen) && nchars < maximum_size()) {
-    int ulen = fl_utf8len(*p);
+  pend = text + ilen;
+  while (p < pend && nchars < maximum_size()) {
+    int ulen = fl_utf8len_real(p, (int) (pend - p));
     if (ulen < 1) ulen = 1; // invalid UTF-8 character: count as 1
     nchars++;
+    if (nchars > maximum_size()) {
+      break;
+    }
     p += ulen;
     nlen += ulen;
   }
@@ -1112,6 +1157,7 @@ int Fl_Input_::handletext(int event, int X, int Y, int W, int H) {
 */
 Fl_Input_::Fl_Input_(int X, int Y, int W, int H, const char* l)
 : Fl_Widget(X, Y, W, H, l) {
+  flags_ex_ = 0;
   box(FL_DOWN_BOX);
   color(FL_BACKGROUND2_COLOR, FL_SELECTION_COLOR);
   align(FL_ALIGN_LEFT);
@@ -1170,6 +1216,11 @@ void Fl_Input_::put_in_buffer(int len) {
   }
   memmove(buffer, value_, size_); buffer[size_] = 0;
   value_ = buffer;
+  // limit to user provied max input
+  if (maximum_size_<size_) {
+    buffer[maximum_size_]=0;
+}
+
 }
 
 /**
@@ -1215,6 +1266,10 @@ int Fl_Input_::static_value(const char* str, int len) {
     value_ = "";
     xscroll_ = yscroll_ = 0;
     minimal_update(0);
+  }
+
+  if (size_>maximum_size_) {
+    size_=maximum_size_;
   }
   position(readonly() ? 0 : size());
   return 1;

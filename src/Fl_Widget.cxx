@@ -136,6 +136,13 @@ Fl_Widget::Fl_Widget(int X, int Y, int W, int H, const char* L) {
     // Make sure fl_graphics_driver is initialized. Important if we are called by a static initializer.
     Fl_Display_Device::display_device();
   }
+
+  // handle application option
+  if (L && Fl::copy_labels()) {
+    if ((label_.value=strdup(L))!=NULL) {
+      set_flag(COPIED_LABEL);
+}
+  }
 }
 
 void Fl_Widget::resize(int X, int Y, int W, int H) {
@@ -276,28 +283,46 @@ int Fl_Widget::contains(const Fl_Widget *o) const {
 
 
 void Fl_Widget::label(const char *a) {
+
+  // handle application option
+  if (Fl::copy_labels()) {
+    copy_label(a);
+    return;
+  }
+
+  void *freelabel=NULL;
   if (flags() & COPIED_LABEL) {
     // reassigning a copied label remains the same copied label
     if (label_.value == a)
       return;
-    free((void *)(label_.value));
+    freelabel=(void *)(label_.value);
     clear_flag(COPIED_LABEL);
   }
   label_.value=a;
+  // free old label if existed
+  free(freelabel);
   redraw_label();
 }
 
 
 void Fl_Widget::copy_label(const char *a) {
-  // reassigning a copied label remains the same copied label
-  if ((flags() & COPIED_LABEL) && (label_.value == a))
+  void *freelabel=NULL;
+  if (flags() & COPIED_LABEL) {
+  	if (a==label_.value) {
     return;
-  if (a) {
-    label(strdup(a));
+  	}
+    freelabel=(void *)(label_.value);
+  }
+  if (a && (label_.value=strdup(a))!=NULL) {
     set_flag(COPIED_LABEL);
   } else {
-    label(0);
+    clear_flag(COPIED_LABEL);
+    label_.value=(char *)0;
   }
+  // remove old label if existed
+  free(freelabel);
+
+  redraw_label();
 }
 
 /** Calls the widget callback function with arbitrary arguments.

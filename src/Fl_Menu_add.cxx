@@ -153,7 +153,10 @@ int Fl_Menu_Item::insert(
   const char* item;
 
   // split at slashes to make submenus:
-  for (;;) {
+	if (myflags & FL_MENU_NO_SPLIT) {
+		item=mytext;
+	}
+  else for (;;) {
 
     // leading slash makes us assume it is a filename:
     if (*mytext == '/') {item = mytext; break;}

@@ -52,6 +52,7 @@ static Fl_Input *input;
 static int ret_val;
 static const char *iconlabel = "?";
 static const char *message_title_default;
+static char choice_icon[2]={ '?', 0 };
 Fl_Font fl_message_font_ = FL_HELVETICA;
 Fl_Fontsize fl_message_size_ = -1;
 static int enableHotspot = 1;
@@ -361,6 +362,14 @@ int fl_ask(const char *fmt, ...) {
   return r;
 }
 
+/** choose letter for fl_choice icon
+*/
+
+void fl_choice_icon(char iconchar)
+{
+  choice_icon[0]=iconchar ? iconchar : '?';
+}
+
 /** Shows a dialog displaying the printf style \p fmt message,
     this dialog features up to 3 customizable choice buttons
     which are specified in order of *right-to-left* in the dialog, e.g.
@@ -424,6 +433,8 @@ int fl_choice(const char*fmt,const char *b0,const char *b1,const char *b2,...){
 
   if (avoidRecursion) return 0;
 
+  iconlabel=choice_icon;
+
   va_list ap;
 
   // fl_beep(FL_BEEP_QUESTION);
@@ -431,6 +442,9 @@ int fl_choice(const char*fmt,const char *b0,const char *b1,const char *b2,...){
   va_start(ap, b2);
   int r = innards(fmt, ap, b0, b1, b2);
   va_end(ap);
+
+  iconlabel="?";
+
   return r;
 }
 /** Gets the Fl_Box icon container of the current default dialog used in
@@ -441,7 +455,7 @@ int fl_choice(const char*fmt,const char *b0,const char *b1,const char *b2,...){
 Fl_Widget *fl_message_icon() {makeform(); return icon;}
 
 static const char* input_innards(const char* fmt, va_list ap,
-				 const char* defstr, uchar type) {
+				 const char* defstr, uchar type, int maxinput=0) {
   makeform();
   message_form->size(410,103);
   message->position(60,10);
@@ -449,6 +463,9 @@ static const char* input_innards(const char* fmt, va_list ap,
   input->show();
   input->value(defstr);
   input->take_focus();
+  if (maxinput) {
+    input->maximum_size(maxinput);
+  }
 
   int r = innards(fmt, ap, fl_cancel, fl_ok, 0);
   input->hide();
@@ -479,6 +496,22 @@ const char* fl_input(const char *fmt, const char *defstr, ...) {
   return r;
 }
 
+/** version of fl_input that limits the number of characters allowed in input field **/
+const char* fl_input_n(const char *fmt, int maxinput, const char *defstr, ...) {
+
+  if (avoidRecursion) return 0;
+
+  fl_beep(FL_BEEP_QUESTION);
+
+  va_list ap;
+  va_start(ap, defstr);
+  const char* r = input_innards(fmt, ap, defstr, FL_NORMAL_INPUT, maxinput);
+  va_end(ap);
+  return r;
+}
+
+
+
 /** Shows an input dialog displaying the \p fmt message.
 
     Like fl_input() except the input text is not shown,
@@ -501,6 +534,20 @@ const char *fl_password(const char *fmt, const char *defstr, ...) {
   va_list ap;
   va_start(ap, defstr);
   const char* r = input_innards(fmt, ap, defstr, FL_SECRET_INPUT);
+  va_end(ap);
+  return r;
+}
+
+/** version of fl_password that limits the number of characters allowed in input field **/
+const char *fl_password_n(const char *fmt, int maxinput, const char *defstr, ...) {
+
+  if (avoidRecursion) return 0;
+
+  fl_beep(FL_BEEP_PASSWORD);
+
+  va_list ap;
+  va_start(ap, defstr);
+  const char* r = input_innards(fmt, ap, defstr, FL_SECRET_INPUT, maxinput);
   va_end(ap);
   return r;
 }

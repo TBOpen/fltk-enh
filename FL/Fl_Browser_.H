@@ -34,6 +34,7 @@
 #define FL_SELECT_BROWSER	1	/**< type() of FL_Select_Browser */
 #define FL_HOLD_BROWSER		2	/**< type() of Fl_Hold_Browser */
 #define FL_MULTI_BROWSER	3	/**< type() of Fl_Multi_Browser */
+#define FL_CHECKBOX_BROWSER	4	/**< type() of Fl_Multi_Browser */
 
 #define FL_SORT_ASCENDING	0	/**< sort browser items in ascending alphabetic order. */
 #define FL_SORT_DESCENDING	1	/**< sort in descending order */
@@ -81,7 +82,6 @@ class FL_EXPORT Fl_Browser_ : public Fl_Group {
   int hposition_;	// where user wants it panned to
   int real_hposition_;	// the current horizontal scrolling position
   int offset_;		// how far down top_ item the real_position is
-  int max_width;	// widest object seen so far
   uchar has_scrollbar_;	// which scrollbars are enabled
   Fl_Font textfont_;
   Fl_Fontsize textsize_;
@@ -89,12 +89,25 @@ class FL_EXPORT Fl_Browser_ : public Fl_Group {
   void* top_;		// which item scrolling position is in
   void* selection_;	// which is selected (except for FL_MULTI_BROWSER)
   void *redraw1,*redraw2; // minimal update pointers
-  void* max_width_item;	// which item has max_width_
   int scrollbar_size_;	// size of scrollbar trough
+  int flags_ex_;  // extended flags for class
+
+  static const int FLAG_EX_SHORTCUT=1;           // support shortcuts on browser items
+  static const int FLAG_EX_FOCUS_COLOR_CHANGE=2; // change selection color based on focus
+  static const int FLAG_EX_CHECK_CHANGED=4;      // checkbox item check changed
+  static const int FLAG_EX_FULL_KB_SELECT=8;     // change selection bar on pgup/pgdn/home/end
+  static const int FLAG_EX_SHORTCUT_ALT=0x10;    // support alt keys to shortcuts on browser items
 
   void update_top();
 
 protected:
+  int max_width;	// widest object seen so far
+  void* max_width_item;	// which item has max_width_
+  void set_scrollbar_visiblity();
+
+  inline int check_size(void) const { return textsize()-2; };
+  inline int check_pre_gap(void) const { return 2; };
+  inline int check_post_gap(void) const { return 5; };
 
   // All of the following must be supplied by the subclass:
   /**
@@ -138,6 +151,7 @@ protected:
     \returns The width of the item in pixels.
   */
   virtual int item_width(void *item) const = 0;
+  virtual int item_quick_width(void *item) const;
   virtual int item_quick_height(void *item) const ;
   /**
     This method must be provided by the subclass to draw the \p item
@@ -220,6 +234,9 @@ public:
   int select(void *item,int val=1,int docallbacks=0);
   int select_only(void *item,int docallbacks=0);
   int deselect(int docallbacks=0);
+
+  virtual void checked(void *item,int val);
+
   /**
     Gets the vertical scroll position of the list as a pixel position \p pos.
     The position returned is how many pixels of the list are scrolled off the top edge
@@ -380,6 +397,75 @@ public:
   */
   void scrollbar_left() { scrollbar.align(FL_ALIGN_LEFT); }
   void sort(int flags=0);
+
+  /**
+    set/clear/check the checked status flag.  The internal handler
+    sets the check_changed() flag.  The application programmer
+    needs to clear_check_changed() if they want to monitor the
+    check_changed() flag.
+  */
+ protected:
+  void set_check_changed() { flags_ex_|=FLAG_EX_CHECK_CHANGED; };
+ public:
+  void clear_check_changed() { flags_ex_&=~FLAG_EX_CHECK_CHANGED; };
+  bool check_changed() const { return (flags_ex_ & FLAG_EX_CHECK_CHANGED)!=0; };
+
+  /**
+    enable/disable supporting shortcuts on browser items
+  */
+  void item_shortcuts(int on) 
+  { 
+    if (on)
+      flags_ex_|=FLAG_EX_SHORTCUT;
+    else
+      flags_ex_&=~FLAG_EX_SHORTCUT;
+};
+  bool item_shortcuts() const { return (flags_ex_ & FLAG_EX_SHORTCUT)!=0; };
+
+  /**
+    change the way shortcuts are handled.  enabling alt shortcuts causes
+    the shortcut to work when the browser doesn't have focus and alt-key
+    combination is used.  if alt shortcuts are not enabled then the short
+    cuts only work within the browser when it has focus.  alt-key allows
+    selection outside the browser group.  Note that this has no affect
+    unless shortcuts are enabled.
+  */
+  void alt_shortcuts(int on) 
+  { 
+    if (on) 
+      flags_ex_|=FLAG_EX_SHORTCUT_ALT; 
+    else
+      flags_ex_&=~FLAG_EX_SHORTCUT_ALT;
+  };
+  bool alt_shortcuts() const { return (flags_ex_ & FLAG_EX_SHORTCUT_ALT)!=0; };
+
+
+  /**
+    enable or disable changing color of the selection bar depending on if the
+    browser control has focus or not
+  */
+  void focus_color_change(int on) 
+  { 
+    if (on) 
+      flags_ex_|=FLAG_EX_FOCUS_COLOR_CHANGE;
+    else
+      flags_ex_&=~FLAG_EX_FOCUS_COLOR_CHANGE;
+  };
+  bool focus_color_change(void) const { return (flags_ex_ & FLAG_EX_FOCUS_COLOR_CHANGE)!=0; };
+
+ /**
+   enable or disable support for changing selection bar when keyboard
+   pgup/pgdn/home/end are used.
+  */
+  void full_kb_select(int on) 
+  { 
+    if (on) 
+      flags_ex_|=FLAG_EX_FULL_KB_SELECT;
+    else
+      flags_ex_&=~FLAG_EX_FULL_KB_SELECT;
+  };
+  bool full_kb_select() const { return (flags_ex_ & FLAG_EX_FULL_KB_SELECT)!=0; };
+
 };
 
 #endif

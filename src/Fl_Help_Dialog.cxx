@@ -149,13 +149,13 @@ Fl_Help_Dialog::Fl_Help_Dialog() {
   { window_ = new Fl_Double_Window(530, 385, "Help Dialog");
     window_->user_data((void*)(this));
     { Fl_Group* o = new Fl_Group(10, 10, 511, 25);
-      { back_ = new Fl_Button(10, 10, 25, 25, "@<-");
+      { back_ = new Fl_Button(10, 10, 25, 25, FL_LT_ARROW_TX);
         back_->tooltip("Show the previous help page.");
         back_->shortcut(0xff51);
         back_->labelcolor((Fl_Color)2);
         back_->callback((Fl_Callback*)cb_back_);
       } // Fl_Button* back_
-      { forward_ = new Fl_Button(45, 10, 25, 25, "@->");
+      { forward_ = new Fl_Button(45, 10, 25, 25, FL_RT_ARROW_TX);
         forward_->tooltip("Show the next help page.");
         forward_->shortcut(0xff53);
         forward_->labelcolor((Fl_Color)2);
@@ -176,7 +176,7 @@ Fl_Help_Dialog::Fl_Help_Dialog() {
       { Fl_Group* o = new Fl_Group(350, 10, 171, 25);
         o->box(FL_DOWN_BOX);
         o->color(FL_BACKGROUND2_COLOR);
-        { find_ = new Fl_Input(375, 12, 143, 21, "@search");
+        { find_ = new Fl_Input(375, 12, 143, 21, FL_SYM_SEARCH_TX);
           find_->tooltip("find text in document");
           find_->box(FL_FLAT_BOX);
           find_->labelsize(13);

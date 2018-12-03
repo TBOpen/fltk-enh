@@ -39,7 +39,10 @@ void Fl_Spinner::sb_cb(Fl_Widget *w, Fl_Spinner *sb) {
     v = atof(sb->input_.value());
 
     if (v < sb->minimum_) {
-      sb->value_ = sb->minimum_;
+      if (v==0 && sb->blank_allowed()) {
+        sb->value_=0;
+      }
+      else sb->value_ = sb->minimum_;
       sb->update();
     } else if (v > sb->maximum_) {
       sb->value_ = sb->maximum_;
@@ -48,24 +51,31 @@ void Fl_Spinner::sb_cb(Fl_Widget *w, Fl_Spinner *sb) {
   } else if (w == &(sb->up_button_)) {
     // Up button pressed...
     v = sb->value_ + sb->step_;
-    if (v > sb->maximum_) {
-      if (sb->wrap_)
-	v = sb->minimum_;
-      else
-	v = sb->maximum_;
+
+    // catch up arrow starting at zero/blank
+    if (v < sb->minimum_ && sb->blank_allowed()) {
+      sb->value_ = sb->minimum_;
     }
-    sb->value_ = v;
+    else if (v > sb->maximum_) {
+      if (sb->minimum_>0 && sb->blank_allowed()) {
+        sb->value_=0;
+      }
+      else sb->value_ = sb->minimum_;
+    }
+    else sb->value_ = v;
+
     sb->update();
   } else if (w == &(sb->down_button_)) {
     // Down button pressed...
     v = sb->value_ - sb->step_;
     if (v < sb->minimum_) {
-      if (sb->wrap_)
-	v = sb->maximum_;
-      else
-	v = sb->minimum_;
+      if (v>0 && sb->blank_allowed()) {
+        sb->value_=0;
     }
-    sb->value_ = v;
+      else sb->value_ = sb->maximum_;
+    }
+    else sb->value_ = v;
+
     sb->update();
   }
 
@@ -93,8 +103,6 @@ void Fl_Spinner::update() {
   input_.value(s);
 }
 
-#define FL_UP_ARROW_TX "@-42<"
-#define FL_DOWN_ARROW_TX "@-42>"
 
 /**
   Creates a new Fl_Spinner widget using the given position, size,
@@ -108,9 +116,11 @@ Fl_Spinner::Fl_Spinner(int X, int Y, int W, int H, const char *L)
   input_(X, Y, W - H / 2 - 2, H),
   up_button_(X + W - H / 2 - 2, Y, H / 2 + 2, H / 2, FL_UP_ARROW_TX),
   down_button_(X + W - H / 2 - 2, Y + H - H / 2,
-               H / 2 + 2, H / 2, FL_DOWN_ARROW_TX)
+               H / 2 + 2, H / 2, FL_DN_ARROW_TX)
 {
   end();
+
+  flags_ex_=0;
 
   value_   = 1.0;
   minimum_ = 1.0;
@@ -123,7 +133,7 @@ Fl_Spinner::Fl_Spinner(int X, int Y, int W, int H, const char *L)
 
   input_.value("1");
   input_.type(FL_INT_INPUT);
-  input_.when(FL_WHEN_ENTER_KEY | FL_WHEN_RELEASE);
+  input_.when(/*FL_WHEN_ENTER_KEY | */FL_WHEN_RELEASE);
   input_.callback((Fl_Callback *)sb_cb, this);
 
   up_button_.callback((Fl_Callback *)sb_cb, this);

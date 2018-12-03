@@ -267,9 +267,9 @@ Widget_Browser::Widget_Browser(int X,int Y,int W,int H,const char*l)
 
 void *Widget_Browser::item_first() const {return Fl_Type::first;}
 
-void *Widget_Browser::item_next(void *l) const {return ((Fl_Type*)l)->next;}
+void *Widget_Browser::item_next(void *l) const {return l ? ((Fl_Type*)l)->next : item_first();}
 
-void *Widget_Browser::item_prev(void *l) const {return ((Fl_Type*)l)->prev;}
+void *Widget_Browser::item_prev(void *l) const {return l ? ((Fl_Type*)l)->prev : item_last();}
 
 int Widget_Browser::item_selected(void *l) const {return ((Fl_Type*)l)->new_selected;}
 

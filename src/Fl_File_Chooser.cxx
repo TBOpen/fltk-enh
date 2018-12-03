@@ -269,7 +269,7 @@ Fl_File_Chooser::Fl_File_Chooser(const char *d, const char *p, int t, const char
       Fl_Group::current()->resizable(favList);
     } // Fl_File_Browser* favList
     { Fl_Group* o = new Fl_Group(320, 10, 25, 95);
-      { favUpButton = new Fl_Button(320, 10, 25, 25, "@8>");
+      { favUpButton = new Fl_Button(320, 10, 25, 25, FL_UP_TRIANGLE_TX);
         favUpButton->callback((Fl_Callback*)cb_favUpButton);
       } // Fl_Button* favUpButton
       { favDeleteButton = new Fl_Button(320, 45, 25, 25, "X");
@@ -277,7 +277,7 @@ Fl_File_Chooser::Fl_File_Chooser(const char *d, const char *p, int t, const char
         favDeleteButton->callback((Fl_Callback*)cb_favDeleteButton);
         Fl_Group::current()->resizable(favDeleteButton);
       } // Fl_Button* favDeleteButton
-      { favDownButton = new Fl_Button(320, 80, 25, 25, "@2>");
+      { favDownButton = new Fl_Button(320, 80, 25, 25, FL_DN_TRIANGLE_TX);
         favDownButton->callback((Fl_Callback*)cb_favDownButton);
       } // Fl_Button* favDownButton
       o->end();

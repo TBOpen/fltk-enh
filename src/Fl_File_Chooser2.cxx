@@ -1254,14 +1254,14 @@ Fl_File_Chooser::update_preview()
     set = 1;
   } else if (fl_filename_isdir(filename)) {
     // filename is a directory, show a folder icon
-    newlabel = "@fileopen";
+    newlabel = FL_SYM_FILEOPEN_TX;
     set = 1;
   } else {
     struct stat s;
     if (fl_stat(filename, &s)==0) {
       if ((s.st_mode & S_IFREG) == 0) {
         // this is no regular file, probably some kind of device
-        newlabel = "@-3refresh"; // a cross
+        newlabel = FL_SYM_CROSS_TX; // a cross
         set = 1;
       } else if (s.st_size==0) {
         // this file is empty
@@ -1397,7 +1397,7 @@ Fl_File_Chooser::update_preview()
   } else if (newlabel) {
     previewBox->label(newlabel);
     previewBox->align(FL_ALIGN_CLIP);
-    previewBox->labelsize(newlabel[0]=='@'?75:12);
+    previewBox->labelsize(newlabel[0]==FL_SYMBOL_CHAR ? 75:12);
     previewBox->labelfont(FL_HELVETICA);
   }
 

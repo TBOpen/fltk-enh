@@ -422,7 +422,7 @@ enum Fl_Event {	// events
  */
 enum Fl_When { // Fl_Widget::when():
   FL_WHEN_NEVER		= 0,	///< Never call the callback
-  FL_WHEN_CHANGED	= 1,	///< Do the callback only when the widget value changes
+  FL_WHEN_CHANGED	= 1,	///< Do the callback only when the widget value changes (or checkbox changes)
   FL_WHEN_NOT_CHANGED	= 2,	///< Do the callback whenever the user interacts with the widget
   FL_WHEN_RELEASE	= 4,	///< Do the callback when the button or key is released and the value changes
   FL_WHEN_RELEASE_ALWAYS= 6,	///< Do the callback when the button or key is released, even if the value doesn't change
@@ -1229,6 +1229,64 @@ enum Fl_Damage {
 #    define frame	fl_frame
 #    define inactive	fl_inactive
 #  endif // FLTK_1_0_COMPAT
+
+
+#if (FLTK_USE_NEW_PREFIX_SYMBOL==1)
+
+  #define FL_SYMBOL_CHAR '\x0F'
+  #define FL_SYMBOL_TX "\x0F"
+
+  #define FL_UP_TRIANGLE_TX "\x0F8>"
+  #define FL_DN_TRIANGLE_TX "\x0F2>"
+
+  #define FL_UP_ARROW_TX "\x0F-42<"
+  #define FL_DN_ARROW_TX "\x0F-42>"
+  #define FL_LT_ARROW_TX "\x0F<-"
+  #define FL_RT_ARROW_TX "\x0F->"
+  #define FL_SYM_FILEOPEN_TX "\x0Ffileopen"
+  #define FL_SYM_CROSS_TX "\x0F-3refresh"
+  #define FL_SYM_SEARCH_TX "\x0Fsearch"
+
+  #define FL_FLUID_LF_ALIGN_TX "\x0F-1<-"
+  #define FL_FLUID_RT_ALIGN_TX "\x0F-1->"
+  #define FL_FLUID_TOP_ALIGN_TX "\x0F-18"
+  #define FL_FLUID_BOT_ALIGN_TX "\x0F-12"
+  #define FL_FLUID_INSIDE_ALIGN_TX "\x0F-3square"
+
+  #define FL_COUNTER_LF2_TX "\x0F-4<<"
+  #define FL_COUNTER_LF_TX "\x0F-4<"
+  #define FL_COUNTER_RT2_TX "\x0F-4>>"
+  #define FL_COUNTER_RT_TX "\x0F-4>"
+
+#elif (FLTK_USE_NEW_PREFIX_SYMBOL==-1)
+  #define FL_SYMBOL_CHAR '@'
+  #define FL_SYMBOL_TX "@"
+
+  #define FL_UP_TRIANGLE_TX "@8>"
+  #define FL_DN_TRIANGLE_TX "@2>"
+
+  #define FL_UP_ARROW_TX "@-42<"
+  #define FL_DN_ARROW_TX "@-42>"
+  #define FL_LT_ARROW_TX "@<-"
+  #define FL_RT_ARROW_TX "@->"
+  #define FL_SYM_FILEOPEN_TX "@fileopen"
+  #define FL_SYM_CROSS_TX "@-3refresh"
+  #define FL_SYM_SEARCH_TX "@search"
+
+  #define FL_FLUID_LF_ALIGN_TX "@-1<-"
+  #define FL_FLUID_RT_ALIGN_TX "@-1->"
+  #define FL_FLUID_TOP_ALIGN_TX "@-18"
+  #define FL_FLUID_BOT_ALIGN_TX "@-12"
+  #define FL_FLUID_INSIDE_ALIGN_TX "@-3square"
+
+  #define FL_COUNTER_LF2_TX "@-4<<"
+  #define FL_COUNTER_LF_TX "@-4<"
+  #define FL_COUNTER_RT2_TX "@-4>>"
+  #define FL_COUNTER_RT_TX "@-4>"
+#else
+  #error "FLTK_USE_NEW_PREFIX_SYMBOL not set - use 'make clean' for build of FLTK or 'fflk-config --cxxflags' for applications"
+#endif
+
 
 #endif
 

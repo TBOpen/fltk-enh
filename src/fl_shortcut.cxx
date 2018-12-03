@@ -71,6 +71,11 @@ int Fl::test_shortcut(unsigned int shortcut) {
   // if shift is also correct, check for exactly equal keysyms:
   if (!(mismatch&(FL_SHIFT)) && key == (unsigned)Fl::event_key()) return 1;
 
+  // test new logic where keypad enter is same as enter
+  if (key==FL_Enter && new_shortcut_logic) {
+    if (!(mismatch&(FL_SHIFT)) && FL_KP_Enter == (unsigned)Fl::event_key()) return 1;
+  }
+
   // try matching utf8, ignore shift:
   unsigned int firstChar = fl_utf8decode(Fl::event_text(), Fl::event_text()+Fl::event_length(), 0);
   if ( ! (FL_CAPS_LOCK&shift) && key==firstChar) return 1;

@@ -99,7 +99,28 @@
 Fl_Input_Choice::InputMenuButton::InputMenuButton(int x,int y,int w,int h,const char*l)
                                  :Fl_Menu_Button(x,y,w,h,l)
 {
+  flags_ex_=0;
   box(FL_UP_BOX);
+}
+
+/** Handle down arrow to open button */
+
+int Fl_Input_Choice::InputMenuButton::handle(int event)
+{
+  if (event==FL_FOCUS) {
+    // don't allow focus to button
+    return 0;
+  }
+
+  if (arrow_shortcut()) {
+    // captures all forms of down arrow to open menu.
+    if (event==FL_KEYBOARD && Fl::focus()==this && Fl::event_key()==FL_Down) {
+      popup();
+      return 1;
+    }
+  }
+
+  return Fl_Menu_Button::handle(event);
 }
 
 /** Draws the private menu button. */
@@ -175,8 +196,7 @@ Fl_Input_Choice::Fl_Input_Choice (int X, int Y, int W, int H, const char *L)
 : Fl_Group(X,Y,W,H,L) {
   Fl_Group::box(FL_DOWN_BOX);
   align(FL_ALIGN_LEFT);					// default like Fl_Input
-  inp_ = new Fl_Input(inp_x(), inp_y(),
-                      inp_w(), inp_h());
+  inp_ = new InputSubclass(inp_x(), inp_y(),inp_w(), inp_h());
   inp_->callback(inp_cb, (void*)this);
   inp_->box(FL_FLAT_BOX);				// cosmetic
   inp_->when(FL_WHEN_CHANGED|FL_WHEN_NOT_CHANGED);
@@ -210,6 +230,24 @@ void Fl_Input_Choice::value(int val) {
 void Fl_Input_Choice::set_changed() {
   inp_->set_changed();
   // no need to call Fl_Widget::set_changed()
+}
+
+/** Handle down arrow to open button */
+
+int Fl_Input_Choice::handle(int event)
+{
+  // this captures Alt-Down arrow when input field has kb focus
+  // because a normal down arrow is already eaten by the Fl_Input
+  // object (receives handle first when it has focus).  If you want
+  // the down arrow to work too, you'd need to call
+  // enable_arrow_shortcut().
+  if (arrow_shortcut()) {
+    if (event==FL_KEYBOARD && Fl::focus()==inp_ && Fl::event_key()==FL_Down) {
+      menu_->popup();
+      return 1;
+    }
+  }
+  return Fl_Group::handle(event);
 }
 
 /** Clears the changed() state of both input and menu button widgets. */
@@ -260,6 +298,33 @@ int Fl_Input_Choice::update_menubutton() {
   }
   return 0;		// not found
 }
+
+/** Constructor for private input widget . */
+
+Fl_Input_Choice::InputSubclass::InputSubclass(int X, int Y, int W, int H)
+               : Fl_Input(X, Y, W, H)
+{
+  flags_ex_=0;
+};
+
+/**
+  Handles events of Fl_Input_Choice embedded input widget.
+
+  Works like Fl_Input::handle() but ignores FL_Up and FL_Down keys
+  so they can be handled by the parent widget (Fl_Input_Choice).
+*/
+int Fl_Input_Choice::InputSubclass::handle(int event) {
+  if (event == FL_KEYBOARD) {
+    if (arrow_shortcut()) {
+      const int key = Fl::event_key();
+      if (key == FL_Down) {
+        return 0;
+      }
+    }
+  }
+  return Fl_Input::handle(event);
+}
+
 
 //
 // End of "$Id$".

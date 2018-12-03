@@ -128,6 +128,17 @@ if(OPTION_USE_POLL)
 endif(OPTION_USE_POLL)
 
 #######################################################################
+option(OPTION_NEWPREFIX "use new prefix" OFF)
+
+if(OPTION_NEWPREFIX)
+	add_definitions (-DFLTK_USE_NEW_PREFIX_SYMBOL=1)
+    list (APPEND FLTK_CFLAGS -DFLTK_USE_NEW_PREFIX_SYMBOL=1)
+else()
+	add_definitions (-DFLTK_USE_NEW_PREFIX_SYMBOL=-1)
+    list (APPEND FLTK_CFLAGS -DFLTK_USE_NEW_PREFIX_SYMBOL=-1)
+endif(OPTION_NEWPREFIX)
+
+#######################################################################
 option(OPTION_BUILD_SHARED_LIBS
     "Build shared libraries(in addition to static libraries)"
     OFF

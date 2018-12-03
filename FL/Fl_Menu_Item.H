@@ -35,7 +35,8 @@ enum { // values for flags:
   FL_SUBMENU_POINTER = 0x20,	///< Indicates user_data() is a pointer to another menu array
   FL_SUBMENU = 0x40,		///< This item is a submenu to other items
   FL_MENU_DIVIDER = 0x80,	///< Creates divider line below this item. Also ends a group of radio buttons.
-  FL_MENU_HORIZONTAL = 0x100	///< ??? -- reserved
+  FL_MENU_HORIZONTAL = 0x100,	///< ??? -- reserved
+  FL_MENU_NO_SPLIT = 0x200, /// don't create submenus when a slash is found
 };
 
 extern FL_EXPORT Fl_Shortcut fl_old_shortcut(const char*);

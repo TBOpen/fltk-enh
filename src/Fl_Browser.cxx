@@ -26,6 +26,7 @@
 #include <FL/Fl_Hold_Browser.H>
 #include <FL/Fl_Multi_Browser.H>
 #include <FL/Fl_Select_Browser.H>
+#include <FL/Fl_Checkbox_Browser.H>
 
 
 // I modified this from the original Forms data to use a linked list
@@ -36,24 +37,6 @@
 
 // Also added the ability to "hide" a line. This sets its height to
 // zero, so the Fl_Browser_ cannot pick it.
-
-#define SELECTED 1
-#define NOTDISPLAYED 2
-
-// WARNING:
-//       Fl_File_Chooser.cxx also has a definition of this structure (FL_BLINE).
-//       Changes to FL_BLINE *must* be reflected in Fl_File_Chooser.cxx as well.
-//       This hack in Fl_File_Chooser should be solved.
-//
-struct FL_BLINE {	// data is in a linked list of these
-  FL_BLINE* prev;
-  FL_BLINE* next;
-  void* data;
-  Fl_Image* icon;
-  short length;		// sizeof(txt)-1, may be longer than string
-  char flags;		// selected, displayed
-  char txt[1];		// start of allocated array
-};
 
 /**
   Returns the very first item in the list.
@@ -75,7 +58,7 @@ void* Fl_Browser::item_first() const {return first;}
   \returns The next item after \p item, or NULL if there are none after this one.
   \see item_first(), item_last(), item_next(), item_prev()
 */
-void* Fl_Browser::item_next(void* item) const {return ((FL_BLINE*)item)->next;}
+void* Fl_Browser::item_next(void* item) const {return  item ? ((FL_BLINE*)item)->next : item_first();}
 
 /**
   Returns the previous item before \p item.
@@ -83,7 +66,7 @@ void* Fl_Browser::item_next(void* item) const {return ((FL_BLINE*)item)->next;}
   \returns The previous item before \p item, or NULL if there are none before this one.
   \see item_first(), item_last(), item_next(), item_prev()
 */
-void* Fl_Browser::item_prev(void* item) const {return ((FL_BLINE*)item)->prev;}
+void* Fl_Browser::item_prev(void* item) const {return item ? ((FL_BLINE*)item)->prev : item_last();}
 
 /**
   Returns the very last item in the list.
@@ -144,7 +127,7 @@ const char *Fl_Browser::item_text(void *item) const {
   \retval NULL if line is out of range.
   \see item_at(), find_line(), lineno()
 */
-FL_BLINE* Fl_Browser::find_line(int line) const {
+Fl_Browser::FL_BLINE* Fl_Browser::find_line(int line) const {
   int n; FL_BLINE* l;
   if (line == cacheline) return cache;
   if (cacheline && line > (cacheline/2) && line < ((cacheline+lines)/2)) {
@@ -203,7 +186,7 @@ int Fl_Browser::lineno(void *item) const {
   \returns Pointer to browser item that was removed (and is no longer valid).
   \see add(), insert(), remove(), swap(int,int), clear()
 */
-FL_BLINE* Fl_Browser::_remove(int line) {
+Fl_Browser::FL_BLINE* Fl_Browser::_remove(int line) {
   FL_BLINE* ttt = find_line(line);
   deleting(ttt);
 
@@ -292,6 +275,7 @@ void Fl_Browser::insert(int line, const char* newtext, void* d) {
   strcpy(t->txt, newtext);
   t->data = d;
   t->icon = 0;
+  t->width=item_width(t);
   insert(line, t);
 }
 
@@ -338,6 +322,7 @@ void Fl_Browser::text(int line, const char* newtext) {
     t = n;
   }
   strcpy(t->txt, newtext);
+  t->width=item_width(t);
   redraw_line(t);
 }
 
@@ -391,7 +376,7 @@ int Fl_Browser::item_height(void *item) const {
 	  case 'C': while (isdigit(*str & 255)) str++; break; // skip a color number
 	  case 'F': font = (Fl_Font)strtol(str,&str,10); break;
 	  case 'S': tsize = strtol(str,&str,10); break;
-	  case 0: case '@': str--;
+  case 0: case FL_SYMBOL_CHAR: str--;
 	  case '.': goto END_FORMAT;
 	  }
 	}
@@ -412,6 +397,15 @@ int Fl_Browser::item_height(void *item) const {
     hmax = l->icon->h() + 2;	// leave 2px above/below
   }
   return hmax; // previous version returned hmax+2!
+}
+
+
+/**
+  Returns width of item in pixels.
+  */
+
+int Fl_Browser::item_quick_width(void *item) const {
+  return ((FL_BLINE*)item)->width;
 }
 
 /**
@@ -458,7 +452,7 @@ int Fl_Browser::item_width(void *item) const {
       case '.':
 	done = 1;
 	break;
-      case '@':
+    case FL_SYMBOL_CHAR:
 	str--;
 	done = 1;
       }
@@ -470,7 +464,15 @@ int Fl_Browser::item_width(void *item) const {
       str ++;
   }
 
-  if (ww==0 && l->icon) ww = l->icon->w();
+  // the icon and checkbox are part of column 1 otherwise we need
+  // to include their width when no columns exist.
+  if (ww==0) {
+    if (l->icon) ww = l->icon->w();
+    if (type()==FL_CHECKBOX_BROWSER) {
+      // -6 because the +6 seems to make things scroll too far
+      ww+=check_size()+check_pre_gap()+check_post_gap()-6;
+    }
+  }
 
   fl_font(font, tsize);
   return ww + int(fl_width(str)) + 6;
@@ -519,18 +521,67 @@ void Fl_Browser::item_draw(void* item, int X, int Y, int W, int H) const {
       e = strchr(str, column_char());
       if (e) {*e = 0; w1 = *i++;}
     }
-    // Icon drawing code
+
+    int tsize = textsize();
+    Fl_Color lcol = textcolor();
+
+    // Icon/Checkbox drawing code
     if (first) {
       first = false;
+      // Checkbox - ideally we should have the icon and checkbox
+      // dedicated to its own column (or not part of any column)
+      // so that changing column widths couldn't prevent those
+      // from showing.  In fact it may be better if each
+      // class had a virtual item_draw that took care of only
+      // what it needs, then adjusts X,W and passes to the base
+      // class.  however, i'm just adding checkboxes to the
+      // existing flow.
+      if (type()==FL_CHECKBOX_BROWSER) {
+        // ignore if won't fit
+        if (W<check_size()+check_pre_gap()) {
+          break;
+        }
+        // setup the colors for the checkbox (using same logical from below
+        // where text is drawn).
+        if (l->flags & SELECTED) {
+          lcol = fl_contrast(lcol, selection_color());
+        }
+        if (!active_r()) lcol = fl_inactive(lcol);
+        fl_color(lcol);
+        // using the checkbox drawing logic from Fl_Check_Browser
+        int cy = Y + ((textsize() + 1 - check_size()) / 2);
+        fl_loop(X+check_pre_gap(), cy, X+check_pre_gap(), cy + check_size(),
+                X + check_pre_gap()+check_size(), cy + check_size(), X + check_pre_gap()+check_size(), cy);
+        if (l->flags & CHECKED) {
+          int tx = X + check_pre_gap()+3;
+          int tw = check_size() - 4;
+          int d1 = tw/3;
+          int d2 = tw-d1;
+          int ty = cy + (check_size()+d2)/2-d1-2;
+          for (int n = 0; n < 3; n++, ty++) {
+            fl_line(tx, ty, tx+d1, ty+d1);
+            fl_line(tx+d1, ty+d1, tx+tw-1, ty+d1-d2+1);
+          }
+        }
+        // adjust available area for next item to be drawn on line
+        X+=check_pre_gap() + check_size() + check_post_gap();
+        W-=check_pre_gap()+check_size() + check_post_gap();
+        w1-=check_pre_gap()+check_size() + check_post_gap();
+        // shouldn't the width of the icon or text be checked and aborted or
+        // clipped if won't fit the column width since X, W and w1 is ajusted
+        // again with the icon then finally used with fldraw w1-6 which could
+        // end up negative (is that a problem for fl_draw?)
+      }
+      // Icon
       if (l->icon) {
 	l->icon->draw(X+2,Y+1);	// leave 2px left, 1px above
 	int iconw = l->icon->w()+2;
 	X += iconw; W -= iconw; w1 -= iconw;
       }
     }
-    int tsize = textsize();
+
+    lcol = textcolor();
     Fl_Font font = textfont();
-    Fl_Color lcol = textcolor();
     Fl_Align talign = FL_ALIGN_LEFT;
     // check for all the @-lines recognized by XForms:
     //#if defined(__GNUC__)
@@ -578,18 +629,25 @@ void Fl_Browser::item_draw(void* item, int X, int Y, int W, int H) const {
 	  break;
 	case '.':
 	  goto BREAK;
-	case '@':
+      case FL_SYMBOL_CHAR:
 	  str--; goto BREAK;
 	}
       }
     }
   BREAK:
     fl_font(font, tsize);
-    if (l->flags & SELECTED)
+    if (l->flags & SELECTED) {
+	  if (type()!=FL_SELECT_BROWSER || Fl::focus()==this) {
       lcol = fl_contrast(lcol, selection_color());
+	  }
+	 }
     if (!active_r()) lcol = fl_inactive(lcol);
     fl_color(lcol);
+    if (item_shortcuts()) {
+      fl_draw_shortcut=1;
+    }
     fl_draw(str, X+3, Y, w1-6, H, e ? Fl_Align(talign|FL_ALIGN_CLIP) : talign, 0, 0);
+    fl_draw_shortcut=0;
     if (!e) break; // no more fields...
     *e = column_char(); // put the separator back
     X += w1;
@@ -611,7 +669,7 @@ Fl_Browser::Fl_Browser(int X, int Y, int W, int H, const char *L)
   lines = 0;
   full_height_ = 0;
   cacheline = 0;
-  format_char_ = '@';
+  format_char_ = FL_SYMBOL_CHAR;
   column_char_ = '\t';
   first = last = cache = 0;
 }
@@ -779,6 +837,10 @@ void Fl_Browser::show(int line) {
   if (t->flags & NOTDISPLAYED) {
     t->flags &= ~NOTDISPLAYED;
     full_height_ += item_height(t);
+    if (t->width > max_width) {
+      max_width=t->width;
+      max_width_item=t;
+    }
     if (Fl_Browser_::displayed(t)) redraw();
   }
 }
@@ -796,6 +858,10 @@ void Fl_Browser::hide(int line) {
   FL_BLINE* t = find_line(line);
   if (!(t->flags & NOTDISPLAYED)) {
     full_height_ -= item_height(t);
+    if (max_width_item==t) {
+      max_width=0;
+      max_width_item=0;
+    }
     t->flags |= NOTDISPLAYED;
     if (Fl_Browser_::displayed(t)) redraw();
   }
@@ -955,7 +1021,6 @@ Fl_Multi_Browser::Fl_Multi_Browser(int X,int Y,int W,int H,const char *L)
 {
   type(FL_MULTI_BROWSER);
 }
-
 
 Fl_Select_Browser::Fl_Select_Browser(int X,int Y,int W,int H,const char *L)
 : Fl_Browser(X,Y,W,H,L) 

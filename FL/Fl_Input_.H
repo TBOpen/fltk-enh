@@ -171,6 +171,15 @@ class FL_EXPORT Fl_Input_ : public Fl_Widget {
 
 protected:
 
+  /* extended flags for class */
+  static const int FLAG_EX_UNICODE_CHAR_INPUT=1;        // allow input of unicode char
+  static const int FLAG_EX_UNICODE_CHAR_BYTE=2;        // use single byte if available
+  static const int FLAG_EX_UNICODE_CHAR_ACTIVE=0x1000;  // in unicode input char mode
+  int flags_ex_;
+
+  /* work variable for building unicode char value */
+  unsigned int unicodeval_;
+
   /* Find the start of a word. */
   int word_start(int i) const;
 
@@ -207,6 +216,25 @@ protected:
 
   /* Return the number of lines displayed on a single page.  */
   int linesPerPage();
+
+  /* handle unicode input mode */
+  void unicode_input_active(int on)
+  {
+    if (on) {
+      if ((flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE)==0) {
+        flags_ex_ |= FLAG_EX_UNICODE_CHAR_ACTIVE;
+        minimal_update(position()); // cause cursor update
+      }
+    }
+    else if (flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE) {
+      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_ACTIVE;
+      minimal_update(position()); // cause cursor update
+    }
+  }
+  bool unicode_input_active(void) { return  (flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE)!=0; };
+
+  /* Helper for setting position */
+  int position_adjust(int p, int current_position);
 
 public:
 
@@ -490,6 +518,37 @@ public:
   int tab_nav() const {
     return tab_nav_;
   }
+
+  /**
+    Enable or Disable support for entering unicode characters
+  */
+  void unicode_input(int on)
+  {
+    if (on)
+      flags_ex_ |= FLAG_EX_UNICODE_CHAR_INPUT;
+    else {
+      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_INPUT;
+      unicode_input_active(0);
+    }
+  }
+
+  bool unicode_input() { return (flags_ex_ & FLAG_EX_UNICODE_CHAR_INPUT)!=0; };
+
+  /**
+    Enable or Disable option for entering unicode characters.
+
+    Note that if this is enabled on any input field, other input fields can
+    have the value copy/paste to it as a single byte as well.
+  */
+  void unicode_single_byte(int on)
+  {
+    if (on)
+      flags_ex_ |= FLAG_EX_UNICODE_CHAR_BYTE;
+    else
+      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_BYTE;
+  }
+  bool unicode_single_byte() { return (flags_ex_ & FLAG_EX_UNICODE_CHAR_BYTE)!=0; };
+
 };
 
 #endif 

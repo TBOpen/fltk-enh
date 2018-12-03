@@ -29,8 +29,6 @@
 #include "Fl_Browser_.H"
 #include "Fl_Image.H"
 
-struct FL_BLINE;
-
 /**
   The Fl_Browser widget displays a scrolling list of text
   lines, and manages all the storage for the text.  This is not a text
@@ -78,6 +76,20 @@ struct FL_BLINE;
   For more info, see find_item(int).
 */
 class FL_EXPORT Fl_Browser : public Fl_Browser_ {
+protected:
+
+  struct FL_BLINE { // data is in a linked list of these
+    FL_BLINE* prev;
+    FL_BLINE* next;
+    void* data;
+    Fl_Image* icon;
+    int width;      // width for updating width fast
+    short length;		// sizeof(txt)-1, may be longer than string
+    char flags;		// selected, displayed
+    char txt[1];		// start of allocated array
+  };
+
+private:
 
   FL_BLINE *first;		// the array of lines
   FL_BLINE *last;
@@ -86,10 +98,14 @@ class FL_EXPORT Fl_Browser : public Fl_Browser_ {
   int lines;                	// Number of lines
   int full_height_;
   const int* column_widths_;
-  char format_char_;		// alternative to @-sign
+  char format_char_;    // alternative to FL_SYMBOL_CHAR-sign
   char column_char_;		// alternative to tab
 
 protected:
+  static const int SELECTED =     1;
+  static const int NOTDISPLAYED = 2;
+  static const int CHECKED =      4;
+
 
   // required routines for Fl_Browser_ subclass:
   void* item_first() const ;
@@ -100,6 +116,7 @@ protected:
   void item_select(void* item, int val);
   int item_height(void* item) const ;
   int item_width(void* item) const ;
+  int item_quick_width(void *item) const;
   void item_draw(void* item, int X, int Y, int W, int H) const ;
   int full_height() const ;
   int incr_height() const ;
@@ -207,9 +224,10 @@ public:
   ~Fl_Browser() { clear(); }
 
   /**
-    Gets the current format code prefix character, which by default is '\@'.
+    Gets the current format code prefix character, which by default is FL_SYMBOL_CHAR.
     A string of formatting codes at the start of each column are stripped off
-    and used to modify how the rest of the line is printed:
+    and used to modify how the rest of the line is printed.  The samples below
+    assume the FL_SYMBOL_CHAR is '@':
     
     \li <tt>'\@.'</tt> Print rest of line, don't look for more '\@' signs
     \li <tt>'\@\@'</tt> Print rest of line starting with '\@'
@@ -238,8 +256,8 @@ public:
   char format_char() const { return format_char_; }
   /**
     Sets the current format code prefix character to \p c.
-    The default prefix is '\@'.  Set the prefix to 0 to disable formatting.
-    \see format_char() for list of '\@' codes
+    The default prefix is FL_SYMBOL_CHAR.  Set the prefix to 0 to disable formatting.
+    \see format_char() for list of FL_SYMBOL_CHAR codes
   */
   void format_char(char c) { format_char_ = c; }
   /**

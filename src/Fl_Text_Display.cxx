@@ -2246,7 +2246,7 @@ void Fl_Text_Display::draw_string(int style,
     else background = fl_color_average(color(), selection_color(), 0.6f);
     foreground = fl_contrast(textcolor(), background);
   } else {
-    foreground = textcolor();
+    foreground = active_r() ? textcolor() : fl_inactive(textcolor());
     background = color();
   }
 

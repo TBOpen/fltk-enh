@@ -233,7 +233,7 @@ Fl_Tree_Prefs::Fl_Tree_Prefs() {
   // Let fltk's current 'scheme' affect defaults
   if (Fl::is_scheme("gtk+")) {
     _selectbox = _FL_GTK_THIN_UP_BOX;
-  } else if (Fl::is_scheme("plastic")) {
+  } else if (Fl::is_scheme("plastic") || Fl::is_scheme("smooth")) {
     _selectbox = _FL_PLASTIC_THIN_UP_BOX;
   }
 }

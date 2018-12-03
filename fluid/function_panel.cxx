@@ -509,7 +509,7 @@ and \"const char*\" in text mode.");
       data_filename->align(Fl_Align(133));
       data_filename->when(FL_WHEN_NEVER);
     } // Fl_Input* data_filename
-    { data_filebrowser = new Fl_Button(290, 90, 40, 20, "@fileopen");
+    { data_filebrowser = new Fl_Button(290, 90, 40, 20, FL_SYM_FILEOPEN_TX);
       data_filebrowser->labelcolor((Fl_Color)134);
     } // Fl_Button* data_filebrowser
     { data_comment_input = new Fl_Text_Editor(10, 130, 320, 65, "Comment:");

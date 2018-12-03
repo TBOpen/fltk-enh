@@ -145,6 +145,8 @@ static Fl_Pixmap	tile(tile_xpm);
         - "plastic" - This scheme is inspired by the Aqua user interface
                       on Mac OS X
 
+        - "smooth" - Same as plastic but without the stripped background
+
         - "gtk+" - This scheme is inspired by the Red Hat Bluecurve theme
 
         - "gleam" - This scheme is inspired by the Clearlooks Glossy scheme.
@@ -167,6 +169,7 @@ int Fl::scheme(const char *s) {
     if (!fl_ascii_strcasecmp(s, "none") || !fl_ascii_strcasecmp(s, "base") || !*s) s = 0;
     else if (!fl_ascii_strcasecmp(s, "gtk+")) s = strdup("gtk+");
     else if (!fl_ascii_strcasecmp(s, "plastic")) s = strdup("plastic");
+    else if (!fl_ascii_strcasecmp(s, "smooth")) s = strdup("smooth");
     else if (!fl_ascii_strcasecmp(s, "gleam")) s = strdup("gleam");
     else s = 0;
   }
@@ -188,7 +191,7 @@ int Fl::scheme(const char *s) {
 int Fl::reload_scheme() {
   Fl_Window *win;
 
-  if (scheme_ && !fl_ascii_strcasecmp(scheme_, "plastic")) {
+  if (scheme_ && (!fl_ascii_strcasecmp(scheme_, "plastic") || !fl_ascii_strcasecmp(scheme_, "smooth"))) {
     // Update the tile image to match the background color...
     uchar r, g, b;
     int nr, ng, nb;
@@ -197,6 +200,13 @@ int Fl::reload_scheme() {
     // OSX 10.3 and higher use a background with less contrast...
     static uchar levels[3] = { 0xff, 0xf8, 0xf4 };
 
+    if (!fl_ascii_strcasecmp(scheme_, "smooth")) {
+      if (scheme_bg_) {
+        delete scheme_bg_;
+        scheme_bg_ = (Fl_Image *)0;
+      }
+    }
+    else {
     get_color(FL_GRAY, r, g, b);
 
 //    printf("FL_GRAY = 0x%02x 0x%02x 0x%02x\n", r, g, b);
@@ -218,6 +228,7 @@ int Fl::reload_scheme() {
     tile.uncache();
 
     if (!scheme_bg_) scheme_bg_ = new Fl_Tiled_Image(&tile, 0, 0);
+    }
 
     // Load plastic buttons, etc...
     set_boxtype(FL_UP_FRAME,        FL_PLASTIC_UP_FRAME);

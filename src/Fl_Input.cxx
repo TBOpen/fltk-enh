@@ -370,6 +370,7 @@ int Fl_Input::handle_key() {
   unsigned int mods = Fl::event_state() & (FL_META|FL_CTRL|FL_ALT);
   unsigned int shift = Fl::event_state() & FL_SHIFT;
   unsigned int multiline = (input_type() == FL_MULTILINE_INPUT) ? 1 : 0;
+
   //
   // The following lists apps that support these keypresses.
   // Prefixes: '!' indicates NOT supported, '?' indicates un-verified.
@@ -460,6 +461,9 @@ int Fl_Input::handle(int event) {
   static Fl_Widget *dnd_save_focus = NULL;
   switch (event) {
     case FL_UNFOCUS:
+      // disable unicode input
+      unicode_input_active(0);
+
       if (Fl::screen_driver()->has_marked_text() && Fl::compose_state) {
 	this->mark( this->position() );
 	Fl::reset_marked_text();
@@ -489,6 +493,65 @@ int Fl_Input::handle(int event) {
       break;
       
     case FL_KEYBOARD:
+
+      // handle unicode input
+      if (unicode_input_active()) {
+        // get as uppercase
+        int uch=Fl::event_key();
+        uch=toupper(uch);
+        // check key if key range valid for hex char
+        if ((uch>='0' && uch<='9') || (uch>='A' && uch<='F')) {
+          // convert key to value
+          uch-='0';
+          if (uch > 9) {
+            uch-=('A'-'9')-1;
+          }
+          unicodeval_=(unicodeval_ * 16)+uch;
+          return 1;
+        }
+        else {
+          // end the input (don't allow chars < a space)
+          if (unicodeval_>=' ') {
+            // build string (not zero terminated)
+            char utext[MB_LEN_MAX];
+            int utextlen;
+            // check for single byte hybrid mode
+            if (unicode_single_byte() && unicodeval_<256) {
+              utext[0]=(unsigned char) unicodeval_;
+              utextlen=1;
+            }
+            else utextlen=wctomb(utext, unicodeval_);
+            // ensure no error code
+            if (utextlen>0) {
+              // make actual replacement of character
+              replace(position(), mark(), utext, utextlen);
+            }
+          }
+          // disable mode
+          unicode_input_active(0);
+          // eat key that ended input if space or enter
+          if (uch==' ' || uch==FL_Enter || uch==FL_KP_Enter) {
+            return 1;
+          }
+        }
+      }
+      else if (!readonly() && unicode_input()) {
+        // check if ctrl-shift down
+        if ((Fl::event_state() & (FL_CTRL|FL_SHIFT))==(FL_CTRL|FL_SHIFT)) {
+          // yes, check if u
+          int ch=Fl::event_key();
+          if (ch=='U' || ch=='u') {
+            // yes, but ignore if someone set on int/float types
+            if (input_type()!=FL_FLOAT_INPUT && input_type()!=FL_INT_INPUT) {
+              // reset value to build
+              unicodeval_=0;
+              unicode_input_active(1);
+              return 1;
+            }
+          }
+        }
+      }
+
       // Handle special case for multiline input with 'old tab behavior'
       // where tab is entered as a character: make sure user attempt to 'tab over'
       // widget doesn't destroy the field, replacing it with a tab character.

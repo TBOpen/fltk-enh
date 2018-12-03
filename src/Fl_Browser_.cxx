@@ -248,6 +248,12 @@ void Fl_Browser_::display(void* item) {
   update_top();
   if (item == item_first()) {position(0); return;}
 
+  // make sure scrollbar set properly  so scrolling/centering works
+  // proper, espically for the last line item which could be hidden
+  // by horizontal scrollbar if it's visible (which it would be
+  // prior to the first draw() call).
+  set_scrollbar_visiblity();
+
   int X, Y, W, H, Yp; bbox(X, Y, W, H);
   void* l = top_;
   Y = Yp = -offset_;
@@ -322,6 +328,104 @@ void Fl_Browser_::display(void* item) {
 #endif
 }
 
+/***
+ determine if the scrollbars should be visible or not
+ and make adjustment as needed
+*/
+void Fl_Browser_::set_scrollbar_visiblity()
+{
+  int full_width_ = full_width();
+  int full_height_ = full_height();
+
+  // note that the width may be reset to zero once the widest
+  // added item is removed.  at that point we want to scan
+  // all lines for the widest.
+  if (full_width_==0) {
+    max_width=0;
+    for (void* p = item_first(); p; p = item_next(p)) {
+      int ww=item_quick_width(p);
+      if (ww > max_width) {
+        max_width = ww;
+        max_width_item = p;
+      }
+    }
+    full_width_=max_width;
+  }
+
+  // this is here only to catch some new class from allowing
+  // full_height_ to go to zero when it shouldn't be
+  if (full_height_==0) {
+    full_height_=Fl_Browser_::full_height();
+  }
+
+  // save scrollbar visible status before adjustment to minimize
+  // drawing via damage.
+  unsigned int sb_vis=scrollbar.visible();
+  unsigned int hsb_vis=hscrollbar.visible();
+
+  // turn off horizontal so vertical scrollbar can determine if it
+  // needs to turn on without the horizontal scrollbar.
+  hscrollbar.clear_visible();
+
+  // now get area available
+  int X, Y, W, H; bbox(X, Y, W, H);
+
+  // setup vertical scrollbar
+  if ((has_scrollbar_ & VERTICAL) && (
+	(has_scrollbar_ & ALWAYS_ON) || position_ || full_height_ > H)) {
+    if (!scrollbar.visible()) {
+      scrollbar.set_visible();
+      bbox(X, Y, W, H);
+    }
+  }
+  else {
+    if (scrollbar.visible()) {
+      scrollbar.clear_visible();
+      bbox(X, Y, W, H);
+    }
+  }
+
+  // setup horizontal scrollbar
+  if ((has_scrollbar_ & HORIZONTAL) && (
+	(has_scrollbar_ & ALWAYS_ON) || hposition_ || full_width_ > W)) {
+    // horizontal scrollbar needed
+      hscrollbar.set_visible();
+      bbox(X, Y, W, H);
+    // check if vertical scrollbar now needed
+    if ((has_scrollbar_ & VERTICAL) && !scrollbar.visible() && full_height_ > H) {
+      scrollbar.set_visible();
+      bbox(X, Y, W, H);
+    }
+    }
+  else {
+    // already cleared before setup of vertical scrollbar above
+  }
+
+  // determine how scrollbars may have changed
+  if (sb_vis!=scrollbar.visible()) {
+    // check if it used to be enabled, if so, reset to ensure all
+    // items start at top.
+    if (sb_vis) {
+      top_ = item_first();
+      real_position_ = offset_ = 0;
+    }
+    // cause redraw of widget
+    damage(FL_DAMAGE_ALL);
+  }
+
+  if (hsb_vis!=hscrollbar.visible()) {
+    // check if it used to be enabled, if so, clear any damaged
+    // scroll request and ensure at column 0.
+    if (hsb_vis) {
+      real_hposition_ = 0;
+      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
+    }
+    // cause redraw of widget
+    damage(FL_DAMAGE_ALL);
+  }
+}
+
+
 // redraw, has side effect of updating top and setting scrollbar:
 /**
   Draws the list within the normal widget bounding box.
@@ -329,66 +433,17 @@ void Fl_Browser_::display(void* item) {
 void Fl_Browser_::draw() {
   int drawsquare = 0;
   update_top();
-  int full_width_ = full_width();
-  int full_height_ = full_height();
+
+  // enable/disable scrollbar based on items
+  set_scrollbar_visiblity();
+
   int X, Y, W, H; bbox(X, Y, W, H);
-  int dont_repeat = 0;
-J1:
+
   if (damage() & FL_DAMAGE_ALL) { // redraw the box if full redraw
     Fl_Boxtype b = box() ? box() : FL_DOWN_BOX;
     draw_box(b, x(), y(), w(), h(), color());
     drawsquare = 1;
   }
-  // see if scrollbar needs to be switched on/off:
-  if ((has_scrollbar_ & VERTICAL) && (
-	(has_scrollbar_ & ALWAYS_ON) || position_ || full_height_ > H)) {
-    if (!scrollbar.visible()) {
-      scrollbar.set_visible();
-      drawsquare = 1;
-      bbox(X, Y, W, H);
-    }
-  } else {
-    top_ = item_first(); real_position_ = offset_ = 0;
-    if (scrollbar.visible()) {
-      scrollbar.clear_visible();
-      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
-    }
-  }
-
-  if ((has_scrollbar_ & HORIZONTAL) && (
-	(has_scrollbar_ & ALWAYS_ON) || hposition_ || full_width_ > W)) {
-    if (!hscrollbar.visible()) {
-      hscrollbar.set_visible();
-      drawsquare = 1;
-      bbox(X, Y, W, H);
-    }
-  } else {
-    real_hposition_ = 0;
-    if (hscrollbar.visible()) {
-      hscrollbar.clear_visible();
-      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
-    }
-  }
-
-  // Check the vertical scrollbar again, just in case it needs to be drawn
-  // because the horizontal one is drawn.  There should be a cleaner way
-  // to do this besides copying the same code...
-  if ((has_scrollbar_ & VERTICAL) && (
-	(has_scrollbar_ & ALWAYS_ON) || position_ || full_height_ > H)) {
-    if (!scrollbar.visible()) {
-      scrollbar.set_visible();
-      drawsquare = 1;
-      bbox(X, Y, W, H);
-    }
-  } else {
-    top_ = item_first(); real_position_ = offset_ = 0;
-    if (scrollbar.visible()) {
-      scrollbar.clear_visible();
-      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
-    }
-  }
-
-  bbox(X, Y, W, H);
 
   fl_push_clip(X, Y, W, H);
   // for each line, draw it if full redraw or scrolled.  Erase background
@@ -399,8 +454,8 @@ J1:
     int hh = item_height(l);
     if (hh <= 0) continue;
     if ((damage()&(FL_DAMAGE_SCROLL|FL_DAMAGE_ALL)) || l == redraw1 || l == redraw2) {
-      if (item_selected(l)) {
-	fl_color(active_r() ? selection_color() : fl_inactive(selection_color()));
+      if ((type()!=FL_SELECT_BROWSER || Fl::focus()==this) && item_selected(l)) {
+		fl_color((active_r() && (!focus_color_change() || Fl::focus()==this)) ? selection_color() : fl_inactive(selection_color()));
 	fl_rectf(X, yy+Y, W, hh);
       } else if (!(damage()&FL_DAMAGE_ALL)) {
 	fl_push_clip(X, yy+Y, W, hh);
@@ -412,8 +467,6 @@ J1:
 	draw_box(FL_BORDER_FRAME, X, yy+Y, W, hh, color());
 	draw_focus(FL_NO_BOX, X, yy+Y, W+1, hh+1);
       }
-      int ww = item_width(l);
-      if (ww > max_width) {max_width = ww; max_width_item = l;}
     }
     yy += hh;
   }
@@ -427,43 +480,20 @@ J1:
 
   fl_push_clip(x(),y(),w(),h());		// STR# 2886
   redraw1 = redraw2 = 0;
-  if (!dont_repeat) {
-    dont_repeat = 1;
-    // see if changes to full_height caused by calls to slow_height
-    // caused scrollbar state to change, in which case we have to redraw:
-    full_height_ = full_height();
-    full_width_ = full_width();
-    if ((has_scrollbar_ & VERTICAL) &&
-	((has_scrollbar_ & ALWAYS_ON) || position_ || full_height_>H)) {
-      if (!scrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
-    } else {
-      if (scrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
-    }
-    if ((has_scrollbar_ & HORIZONTAL) &&
-	((has_scrollbar_ & ALWAYS_ON) || hposition_ || full_width_>W)) {
-      if (!hscrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
-    } else {
-      if (hscrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
-    }
-  }
 
   // update the scrollbars and redraw them:
   int scrollsize = scrollbar_size_ ? scrollbar_size_ : Fl::scrollbar_size();
   int dy = top_ ? item_quick_height(top_) : 0; if (dy < 10) dy = 10;
   if (scrollbar.visible()) {
-    scrollbar.damage_resize(
-	scrollbar.align()&FL_ALIGN_LEFT ? X-scrollsize : X+W,
-	Y, scrollsize, H);
-    scrollbar.value(position_, H, 0, full_height_);
+    scrollbar.damage_resize(scrollbar.align()&FL_ALIGN_LEFT ? X-scrollsize : X+W, Y, scrollsize, H);
+    scrollbar.value(position_, H, 0, full_height());
     scrollbar.linesize(dy);
     if (drawsquare) draw_child(scrollbar);
     else update_child(scrollbar);
   }
   if (hscrollbar.visible()) {
-    hscrollbar.damage_resize(
-	X, scrollbar.align()&FL_ALIGN_TOP ? Y-scrollsize : Y+H,
-	W, scrollsize);
-    hscrollbar.value(hposition_, W, 0, full_width_);
+    hscrollbar.damage_resize(X, scrollbar.align()&FL_ALIGN_TOP ? Y-scrollsize : Y+H, W, scrollsize);
+    hscrollbar.value(hposition_, W, 0, full_width());
     hscrollbar.linesize(dy);
     if (drawsquare) draw_child(hscrollbar);
     else update_child(hscrollbar);
@@ -707,11 +737,47 @@ int Fl_Browser_::handle(int event) {
 
   // must do shortcuts first or the scrollbar will get them...
   if (event == FL_ENTER || event == FL_LEAVE) return 1;
-  if (event == FL_KEYBOARD && type() >= FL_HOLD_BROWSER) {
-    void* l1 = selection_;
-    void* l = l1; if (!l) l = top_; if (!l) l = item_first();
+
+  int X, Y, W, H; bbox(X, Y, W, H);
+
+  if (event == FL_SHORTCUT && item_shortcuts() && (Fl::event_state(FL_ALT)==0 || alt_shortcuts())) {
+    void* l = selection_;
+    if (!l) l = item_first();
+    void *li=l;
+    while (l) {
+      // check for shortcut key pressed
+      if (test_shortcut(item_text(l),  Fl::focus() != this)) {
+        // determine what type of selection to make
+        take_focus();
+        if (type()==FL_HOLD_BROWSER || type()==FL_CHECKBOX_BROWSER || type()==FL_SELECT_BROWSER) {
+          select_only(l, when());
+          if (type()==FL_CHECKBOX_BROWSER) {
+            checked(l, -1);
+          }
+        }
+        else {
+          selection_ = l;
+          select(l, !item_selected(l), when() & ~FL_WHEN_ENTER_KEY);
+        }
+        return 1;
+      }
+      // next item
+      if ((l=item_next(l))==NULL) {
+        // wrap back to start of list
+        l=item_first();
+      }
+      // exit once back to starting point
+      if (l==li) break;
+    }
+  }
+  else if (event == FL_SHORTCUT && Fl::focus()!=this && test_shortcut()) {
+    take_focus();
+  }
+  else if (event == FL_KEYBOARD && type() >= FL_SELECT_BROWSER) {
+    void* ls = selection_;
+    void* l = ls; if (!l) l = top_; if (!l) l = item_first();
     if (l) {
-      if (type()==FL_HOLD_BROWSER) {
+      if (type()==FL_HOLD_BROWSER || type()==FL_CHECKBOX_BROWSER || type()==FL_SELECT_BROWSER) {
         switch (Fl::event_key()) {
         case FL_Down:
 	  while ((l = item_next(l))) {
@@ -719,14 +785,81 @@ int Fl_Browser_::handle(int event) {
 	  }
             return 1;
         case FL_Up:
-          while ((l = item_prev(l))) {
-	    if (item_height(l)>0) {
-	      select_only(l, when());
+          while ((ls = item_prev(ls))) {
+            if (item_height(ls)>0) {
+              select_only(ls, when());
 	      break; // no need to test wp (return 1)
 	    }
 	  }
           return 1;
+          case ' ':
+            if (ls && type()==FL_CHECKBOX_BROWSER) {
+              checked(ls, -1);
+              return 1;
         } 
+        }
+
+        // check if class should handle moving selection bar when
+        // using the keyboard for home/end/pgup/pgdn.
+        if (full_kb_select() && ls) {
+          switch (Fl::event_key()) {
+            case FL_Home:
+              if (selection_!=item_first()) {
+                select_only(item_first(), when());
+              }
+              // allow scrollbar to adjust
+              break;
+            case FL_End:
+              for (void *nl;(nl=item_next(ls));ls=nl);
+              if (selection_!=ls) {
+                select_only(ls, when());
+              }
+              // allow scrollbar to adjust
+              break;
+            case FL_Page_Down:
+            case FL_Page_Up:
+              // figure out entries per box (assumes all items are same height)
+              int itemheight=item_height(item_first());
+              int linesperbox=(H+itemheight-1)/itemheight;
+              // adjust one less for proper paging
+              // (first(pgup)/last(pgdn) item of previous page becomes last(pgup)/first(pgdn) item)
+              linesperbox--;
+              // determine if we prevent scrollbar from getting key press
+              bool eatkey=!displayed(ls);
+              // find the line to highlight
+              while (linesperbox>0) {
+                void *nl=(Fl::event_key()==FL_Page_Down) ? item_next(ls) : item_prev(ls);
+                if (!nl) break;
+                ls=nl;
+                if (item_height(ls)>0) {
+                  linesperbox--;
+                }
+              }
+              if (selection_!=ls) {
+                select_only(ls, when());
+              }
+              // abort if we had to bring this selection into view
+              if (eatkey) {
+                return 1;
+              }
+              // allow scrollbar to adjust
+              break;
+          }
+        }
+
+				// for types other than checkbox we allow enter key to be treated as a click/double click
+				if (type()!=FL_CHECKBOX_BROWSER) {
+        	// make the enter key actually select something as a double click
+        	if ((Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter)) {
+						if (when()) {
+        	  	// do call back after set double click so double click can be detected
+        	  	Fl::event_clicks(2);
+        	 		do_callback();
+							// eat the key
+        	 		return 1;
+						}
+        	}
+				}
       } else  {
         switch (Fl::event_key()) {
         case FL_Enter:
@@ -745,7 +878,7 @@ int Fl_Browser_::handle(int event) {
         case FL_Down:
           while ((l = item_next(l))) {
             if (Fl::event_state(FL_SHIFT|FL_CTRL))
-              select(l, l1 ? item_selected(l1) : 1, when());
+              select(l, ls ? item_selected(ls) : 1, when() & ~FL_WHEN_ENTER_KEY);
 	    if (wp.deleted()) return 1;
             if (item_height(l)>0) goto J1;
           }
@@ -753,7 +886,7 @@ int Fl_Browser_::handle(int event) {
         case FL_Up:
           while ((l = item_prev(l))) {
             if (Fl::event_state(FL_SHIFT|FL_CTRL))
-              select(l, l1 ? item_selected(l1) : 1, when());
+              select(l, ls ? item_selected(ls) : 1, when() & ~FL_WHEN_ENTER_KEY);
 	    if (wp.deleted()) return 1;
             if (item_height(l)>0) goto J1;
           }
@@ -771,7 +904,6 @@ J1:
   if (Fl_Group::handle(event)) return 1;
   if (wp.deleted()) return 1;
 
-  int X, Y, W, H; bbox(X, Y, W, H);
   int my;
 // NOTE:
 // instead of:
@@ -805,12 +937,21 @@ J1:
     if (type() == FL_NORMAL_BROWSER || !top_)
       ;
     else if (type() != FL_MULTI_BROWSER) {
-      change = select_only(find_item(my), 0);
+      void *l=find_item(my);
+      change = select_only(l, 0);
       if (wp.deleted()) return 1;
       if (change && (when() & FL_WHEN_CHANGED)) {
 	set_changed();
 	do_callback();
 	if (wp.deleted()) return 1;
+      }
+      // handle check box clicks
+      if (l && type()==FL_CHECKBOX_BROWSER) {
+        // check for click within a checkbox
+        if (Fl::event_inside(X,Y, check_size()+check_pre_gap()+check_post_gap(), H)) {
+          checked(l, -1);
+          if (wp.deleted()) return 1;
+        }
       }
     } else {
       void* l = find_item(my);
@@ -916,12 +1057,13 @@ J1:
     py = my;
     return 1;
   case FL_RELEASE:
+  /*
     if (type() == FL_SELECT_BROWSER) {
       void* t = selection_;
       deselect();
       if (wp.deleted()) return 1;
       selection_ = t;
-    }
+    }*/
     if (change) {
       set_changed();
       if (when() & FL_WHEN_RELEASE) do_callback();
@@ -938,7 +1080,7 @@ J1:
     return 1;
   case FL_FOCUS:
   case FL_UNFOCUS:
-    if (type() >= FL_HOLD_BROWSER && Fl::visible_focus()) {
+    if (type() >= FL_SELECT_BROWSER && Fl::visible_focus()) {
       redraw();
       return 1;
     } else return 0;
@@ -978,6 +1120,7 @@ Fl_Browser_::Fl_Browser_(int X, int Y, int W, int H, const char* L)
   max_width_item = 0;
   scrollbar_size_ = 0;
   redraw1 = redraw2 = 0;
+  flags_ex_= 0;
   end();
 }
 
@@ -1029,6 +1172,20 @@ void Fl_Browser_::sort(int flags) {
 }
 
 // Default versions of some of the virtual functions:
+
+/**
+  This method may be provided by the subclass to return the width of the
+  \p item, in pixels.
+  Allow for two additional pixels for the list selection box.
+  This method differs from item_width in that it is only called for
+  selection and scrolling operations.
+  The default implementation calls item_width.
+  \param[in] item The item whose width to return.
+  \returns The width, in pixels.
+*/
+int Fl_Browser_::item_quick_width(void* item) const {
+  return item_width(item);
+}
 
 /**
   This method may be provided by the subclass to return the height of the
@@ -1096,6 +1253,15 @@ void Fl_Browser_::item_select(void *item, int val) {}
   \param[in] item The item to test.
 */
 int Fl_Browser_::item_selected(void* item) const { return item==selection_ ? 1 : 0; }
+
+/**
+  change the checked status of item
+
+  \param[in] item The item whose checked state is to be changed
+  \param[in] val The new checked state (1=checked, 0=not checked, -1=toggle)
+*/
+void Fl_Browser_::checked(void *item,int val) { }
+
 
 //
 // End of "$Id$".

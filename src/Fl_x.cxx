@@ -216,7 +216,7 @@ static void do_queued_events() {
   // we send FL_LEAVE only if the mouse did not enter some other window:
   if (!in_a_window) Fl::handle(FL_LEAVE, 0);
 #if CONSOLIDATE_MOTION
-  else if (send_motion == fl_xmousewin) {
+  else if (send_motion == fl_xmousewin && send_motion!=0) {
     send_motion = 0;
     Fl::handle(FL_MOVE, fl_xmousewin);
   }
@@ -1271,6 +1271,13 @@ int fl_handle(const XEvent& thisevent)
   fl_xevent = &thisevent;
   Window xid = xevent.xany.window;
 
+#if 0
+if (xevent.type>=LASTEvent) {
+  printf("xevent %d occured\n", xevent.type);
+}
+else printf("xevent %s occured\n", debugtext[xevent.type]);
+#endif
+
   if (fl_xim_ic && xevent.type == DestroyNotify &&
         xid != fl_xim_win && !fl_find(xid))
   {
@@ -1937,6 +1944,9 @@ int fl_handle(const XEvent& thisevent)
     break;
   
   case ButtonPress:
+#if 0
+printf("ButtonPress: %Xh  state: %Xh\n", xevent.xbutton.button , xevent.xbutton.state);
+#endif
     Fl::e_keysym = FL_Button + xevent.xbutton.button;
     set_event_xy(window);
     Fl::e_dx = Fl::e_dy = 0;

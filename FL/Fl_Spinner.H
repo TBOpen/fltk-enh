@@ -44,6 +44,9 @@ class FL_EXPORT Fl_Spinner : public Fl_Group {
   double	step_;			// Amount to add/subtract for up/down
   const char	*format_;		// Format string for input field
   int		wrap_;			// wrap around at bounds (1/0)
+  int flags_ex_;      // additional option flags
+
+  static const int FLAG_EX_BLANK_ALLOWED=1;   // allow blank (zero) (outside of range)
 
 private:
 
@@ -194,6 +197,18 @@ public:
     Returns the selection color of the spinner widget's input field.
   */
   Fl_Color selection_color() const { return input_.selection_color(); }
+
+  /**
+   enable or disable support for making spinner values optional
+  */
+  void blank_allowed(int on) 
+  { 
+    if (on) 
+      flags_ex_|=FLAG_EX_BLANK_ALLOWED; 
+    else
+      flags_ex_&=~FLAG_EX_BLANK_ALLOWED;
+};
+  bool blank_allowed() { return (flags_ex_ & FLAG_EX_BLANK_ALLOWED)!=0; };
 };
 
 #endif // !Fl_Spinner_H

@@ -76,11 +76,14 @@ class Fl_Widget_Tracker;
 class FL_EXPORT Fl_Button : public Fl_Widget {
 
   int shortcut_;
+  int shortcut2_;
   char value_;
   char oldval;
   uchar down_box_;
+  char flags_ex_;
 
 protected:
+  static const int FLAG_EX_CLICK_ON_ENTER_KEY=1;  // cause normal button press when enter pressed
 
   static Fl_Widget_Tracker *key_release_tracker;
   static void key_release_timeout(void*);
@@ -120,6 +123,7 @@ public:
     \retval int
    */
   int shortcut() const {return shortcut_;}
+  int shortcut2() const {return shortcut2_;}
 
   /**
     Sets the shortcut key to \c s.
@@ -141,6 +145,7 @@ public:
     \param[in] s bitwise OR of key and shift flags
    */
   void shortcut(int s) {shortcut_ = s;}
+  void shortcut2(int s) {shortcut2_ = s;}
 
   /**
     Returns the current down box type, which is drawn when value() is non-zero.
@@ -167,6 +172,17 @@ public:
 
   /// (for backwards compatibility)
   void down_color(unsigned c) {selection_color(c);}
+
+  /// option for enter to cause button click when a normal button has kb focus
+  void click_on_enter_key(int on) 
+  { 
+    if (on)
+      flags_ex_|=FLAG_EX_CLICK_ON_ENTER_KEY; 
+    else
+      flags_ex_&=~FLAG_EX_CLICK_ON_ENTER_KEY;
+};
+  bool click_on_enter_key() const { return (flags_ex_ & FLAG_EX_CLICK_ON_ENTER_KEY)!=0; };
+
 };
 
 #endif

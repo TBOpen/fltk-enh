@@ -48,23 +48,6 @@
 #define SELECTED 1
 #define NOTDISPLAYED 2
 
-// TODO -- Warning: The definition of FL_BLINE here is a hack.
-//    Fl_File_Browser should not do this. PLEASE FIX.
-//    FL_BLINE should be private to Fl_Browser, and not re-defined here.
-//    For now, make sure this struct is precisely consistent with Fl_Browser.cxx.
-//
-struct FL_BLINE			// data is in a linked list of these
-{
-  FL_BLINE	*prev;		// Previous item in list
-  FL_BLINE	*next;		// Next item in list
-  void		*data;		// Pointer to data (function)
-  Fl_Image      *icon;		// Pointer to optional icon
-  short		length;		// sizeof(txt)-1, may be longer than string
-  char		flags;		// selected, displayed
-  char		txt[1];		// start of allocated array
-};
-
-
 //
 // 'Fl_File_Browser::full_height()' - Return the height of the list.
 //

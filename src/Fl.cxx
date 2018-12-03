@@ -164,6 +164,14 @@ Fl_Window	*Fl::modal_;       // topmost modal() window
 char const * const Fl::clipboard_plain_text = "text/plain";
 char const * const Fl::clipboard_image = "image";
 
+// define symbol character for third party library builders who want
+// to provide a single library and support builds using old @ symbol
+// prefix or new 0x0F symbol prefix.
+const char Fl::symbol_prefix_char=FL_SYMBOL_CHAR;
+
+// define new way to handle shortcuts consistantly for users
+// using keyboard.
+bool Fl::new_shortcut_logic=false;
 
 //
 // Drivers
@@ -1355,7 +1363,24 @@ int Fl::handle_(int e, Fl_Window* window)
 
   case FL_SHORTCUT:
     if (grab()) {wi = grab(); break;} // send it to grab window
-
+    if (new_shortcut_logic) {
+      Fl_Widget *wo;
+      // handle normal character key presses within object with keyboard focus
+      if (Fl::event_state(FL_ALT|FL_CTRL|FL_META|FL_COMMAND)==0) {
+        // get object with keyboard focus
+        wo=Fl::focus();
+        if (wo && wo->window()==window) {
+          // handle object with keyboard focus first
+          if (send_event(FL_SHORTCUT, wo, wo->window())) return 1;
+        }
+      }
+      // handle other shortcuts at the active window level
+      Fl_Window *tw=first_window();
+      if (tw) {
+        if (send_event(FL_SHORTCUT, tw, tw)) return 1;
+      }
+    }
+    else {
     // Try it as shortcut, sending to mouse widget and all parents:
     wi = find_active(belowmouse()); // STR #3216
     if (!wi) {
@@ -1363,6 +1388,7 @@ int Fl::handle_(int e, Fl_Window* window)
       if (!wi) wi = window;
     } else if (wi->window() != first_window()) {
       if (send_event(FL_SHORTCUT, first_window(), first_window())) return 1;
+    }
     }
 
     for (; wi; wi = wi->parent()) {

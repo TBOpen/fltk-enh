@@ -56,6 +56,11 @@ FL_EXPORT int fl_ask(const char *,...) __fl_attr((__format__ (__printf__, 1, 2),
 FL_EXPORT int fl_choice(const char *q,const char *b0,const char *b1,const char *b2,...) __fl_attr((__format__ (__printf__, 1, 5)));
 FL_EXPORT const char *fl_input(const char *label, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 3)));
 FL_EXPORT const char *fl_password(const char *label, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 3)));
+FL_EXPORT const char *fl_input_n(const char *label, int maxinput, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 4)));
+FL_EXPORT const char *fl_password_n(const char *label, int maxinput, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 4)));
+
+// set the icon character for fl_choice - set to 0 for default
+FL_EXPORT void fl_choice_icon(char iconchar);
 
 FL_EXPORT Fl_Widget *fl_message_icon();
 extern FL_EXPORT Fl_Font fl_message_font_;

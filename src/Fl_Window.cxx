@@ -156,8 +156,17 @@ void Fl_Window::label(const char *name) {
 
 /** Sets the window titlebar label to a copy of a character string */
 void Fl_Window::copy_label(const char *a) {
-  Fl_Widget::copy_label(a);
-  label(label(), iconlabel());	// platform dependent
+  // don't delete old label until new label established
+  void *freelabel=NULL;
+  if (flags() & COPIED_LABEL) {
+    freelabel=(void*) label();
+}
+  // create new label copy
+  if (a) a = strdup(a);
+  label(a, iconlabel());
+  set_flag(COPIED_LABEL);
+  // remove old label if it existed
+  free(freelabel);
 }
 
 void Fl_Window::iconlabel(const char *iname) {

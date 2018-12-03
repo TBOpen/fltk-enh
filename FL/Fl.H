@@ -208,6 +208,17 @@ public: // should be private!
   static void damage(int d) {damage_ = d;}
   
 public:
+
+  // define symbol character for third party library builders who want
+  // to provide a single library and support builds using old @ symbol
+  // prefix or new 0x0F symbol prefix.
+  static const char symbol_prefix_char;
+
+  // variable to determine if new method used to handle shortcuts should
+  // be used.
+  static bool new_shortcut_logic;
+
+
   /** Enumerator for global FLTK options.
       These options can be set system wide, per user, or for the running
       application only.
@@ -256,6 +267,9 @@ public:
     /// value.
     /// When switched off, no such window gets displayed.
     OPTION_SHOW_SCALING,
+      /// Make a copy of the labels provided to Fl_Widget instead of
+      /// using the pointer passed to it.
+    OPTION_COPY_LABELS,
       // don't change this, leave it always as the last element
       /// For internal use only.
     OPTION_LAST
@@ -1115,6 +1129,10 @@ int main() {
   static void set_labeltype(Fl_Labeltype,Fl_Label_Draw_F*,Fl_Label_Measure_F*);
   /** Sets the functions to call to draw and measure a specific labeltype. */
   static void set_labeltype(Fl_Labeltype, Fl_Labeltype from); // is it defined ?
+
+  // labels:
+  static void copy_labels(int v) { option(OPTION_COPY_LABELS, (v!=0)); };
+  static int  copy_labels() { return option(OPTION_COPY_LABELS); };
 
   // boxtypes:
   static Fl_Box_Draw_F *get_boxtype(Fl_Boxtype);

@@ -17,7 +17,7 @@
 //
 
 // These are small graphics drawn by the normal label-drawing
-// code when the string starts with an '@' sign.
+// code when the string starts with an FL_SYMBOL_CHAR sign.
 
 // Adapted from original code written by:
 
@@ -70,7 +70,7 @@ static void fl_init_symbols(void);
 
 /**
   Adds a symbol to the system.
-  \param[in] name     name of symbol (without the "@")
+  \param[in] name     name of symbol (without the FL_SYMBOL_CHAR)
   \param[in] drawit   function to draw symbol
   \param[in] scalable set to 1 if \p drawit uses scalable vector drawing
   \returns 1 on success, 0 on failure
@@ -102,7 +102,7 @@ int fl_return_arrow(int x,int y,int w,int h);
 // provided for back compatibility:
 int fl_draw_symbol(const char *label,int x,int y,int w,int h,Fl_Color col) {  
   const char *p = label;
-  if (*p++ != '@') return 0;
+  if (*p++ != FL_SYMBOL_CHAR) return 0;
   fl_init_symbols();
   int equalscale = 0;
   if (*p == '#') {equalscale = 1; p++;}

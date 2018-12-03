@@ -90,11 +90,11 @@ void *Fl_Check_Browser::item_first() const {
 }
 
 void *Fl_Check_Browser::item_next(void *l) const {
-	return ((cb_item *)l)->next;
+  return l ? ((cb_item *)l)->next : item_first();
 }
 
 void *Fl_Check_Browser::item_prev(void *l) const {
-	return ((cb_item *)l)->prev;
+  return l ? ((cb_item *)l)->prev : item_last();
 }
 
 int Fl_Check_Browser::item_height(void *) const {

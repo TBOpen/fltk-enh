@@ -403,6 +403,13 @@ AC_SUBST(LINKSHARED)
 AC_SUBST(FLUID)
 
 AC_ARG_ENABLE(threads, [  --enable-threads        enable multi-threading support [[default=yes]]])
+NEW_PREFIX_SYMBOL_FLAG="-DFLTK_USE_NEW_PREFIX_SYMBOL=-1"
+
+AC_ARG_ENABLE(newprefix, [  --enable-newprefix      enable use of new prefix symbol 0x0F [[default=no]]])
+if test x$enable_newprefix = xyes; then
+  NEW_PREFIX_SYMBOL_FLAG="-DFLTK_USE_NEW_PREFIX_SYMBOL=1"
+fi
+AC_SUBST(NEW_PREFIX_SYMBOL_FLAG)
 
 AC_ARG_WITH(optim, [  --with-optim="flags"    use custom optimization flags])
 

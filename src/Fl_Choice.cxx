@@ -36,7 +36,7 @@ void Fl_Choice::draw() {
   int W = Fl::is_scheme("gtk+")    ? 20 :			// gtk+  -- fixed size
           Fl::is_scheme("gleam")   ? 20 :			// gleam -- fixed size
           Fl::is_scheme("plastic") ? ((H > 20) ? 20 : H)	// plastic: shrink if H<20
-                                   : ((H > 20) ? 20 : H);	// default: shrink if H<20
+                                   : ((H > 20) ? 20 : H);	// default/smooth: shrink if H<20
   int X = x() + w() - W - dx;
   int Y = y() + dy;
 
@@ -53,7 +53,7 @@ void Fl_Choice::draw() {
 
     // Draw arrow area
     fl_color(active_r() ? labelcolor() : fl_inactive(labelcolor()));
-    if (Fl::is_scheme("plastic")) {
+    if (Fl::is_scheme("plastic") || Fl::is_scheme("smooth")) {
       // Show larger up/down arrows...
       fl_polygon(x1, y1 + 3, x1 + w1, y1 + w1 + 3, x1 + 2 * w1, y1 + 3);
       fl_polygon(x1, y1 + 1, x1 + w1, y1 - w1 + 1, x1 + 2 * w1, y1 + 1);

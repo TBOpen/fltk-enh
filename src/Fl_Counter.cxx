@@ -66,15 +66,15 @@ void Fl_Counter::draw() {
 
   if (type() == FL_NORMAL_COUNTER) {
     draw_box(boxtype[1], xx[1], y(), ww[1], h(), color());
-    fl_draw_symbol("@-4<<", xx[1], y(), ww[1], h(), selcolor);
+    fl_draw_symbol(FL_COUNTER_LF2_TX, xx[1], y(), ww[1], h(), selcolor);
   }
   draw_box(boxtype[2], xx[2], y(), ww[2], h(), color());
-  fl_draw_symbol("@-4<",  xx[2], y(), ww[2], h(), selcolor);
+  fl_draw_symbol(FL_COUNTER_LF_TX,  xx[2], y(), ww[2], h(), selcolor);
   draw_box(boxtype[3], xx[3], y(), ww[3], h(), color());
-  fl_draw_symbol("@-4>",  xx[3], y(), ww[3], h(), selcolor);
+  fl_draw_symbol(FL_COUNTER_RT_TX,  xx[3], y(), ww[3], h(), selcolor);
   if (type() == FL_NORMAL_COUNTER) {
     draw_box(boxtype[4], xx[4], y(), ww[4], h(), color());
-    fl_draw_symbol("@-4>>", xx[4], y(), ww[4], h(), selcolor);
+    fl_draw_symbol(FL_COUNTER_RT2_TX, xx[4], y(), ww[4], h(), selcolor);
   }
 }
 

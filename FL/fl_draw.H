@@ -33,6 +33,8 @@ class Fl_Window;
 
 // Label flags...
 FL_EXPORT extern char fl_draw_shortcut;
+FL_EXPORT extern char fl_force_wrap_breaks; // option set by app and/or widgets
+
 
 /** \addtogroup fl_attributes
     @{

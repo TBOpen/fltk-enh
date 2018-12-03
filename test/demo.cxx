@@ -29,6 +29,7 @@
 
 #if defined(_MSC_VER)
 #  define fl_putenv _putenv
+#  include <direct.h>
 #else
 #  define fl_putenv putenv
 #endif // _MSC_VER
